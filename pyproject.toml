@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pycotovia"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Pure-Python Cotovia G2P phonemizer for Galician and Spanish"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -37,3 +37,6 @@ pycotovia = "pycotovia.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["pycotovia*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pycotovia.version.__version__"}
