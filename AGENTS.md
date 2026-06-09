@@ -45,4 +45,4 @@ None. Pure Python >= 3.11.
 
 ## License
 
-GPL-3.0-or-later.
+Apache-2.0.

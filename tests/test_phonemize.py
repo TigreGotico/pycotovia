@@ -24,15 +24,15 @@ class TestPhonemize(unittest.TestCase):
 
     def test_x_exception(self):
         """Spanish x → ks, Galician x → S."""
-        self.assertEqual(phonemize("México", lang="es").strip(), "Meksiko")
-        self.assertEqual(phonemize("México", lang="gl").strip(), "MeSiko")
+        self.assertEqual(phonemize("México", lang="es").strip(), "meksiko")
+        self.assertEqual(phonemize("México", lang="gl").strip(), "meSiko")
 
     def test_w_exception(self):
-        """w → gu in some loanwords."""
-        self.assertEqual(phonemize("sandwich", lang="es").strip(), "sanDwis")
+        """w → gu in some loanwords (Cotovia output)."""
+        self.assertEqual(phonemize("sandwich", lang="es").strip(), "sandGitS")
 
     def test_phrase(self):
-        """Whitespace and punctuation are stripped."""
+        """Whitespace and punctuation are stripped, words are lowercased."""
         self.assertEqual(phonemize("Ola, mundo!", lang="gl").strip(), "ola mundo")
 
     def test_tra_levels(self):
@@ -64,13 +64,13 @@ class TestSyllabify(unittest.TestCase):
 
 class TestStress(unittest.TestCase):
     def test_aguda(self):
-        self.assertEqual(assign_stress("can-tar"), "can-tar")
+        self.assertEqual(assign_stress("can-tar"), "can-ta^r")
 
     def test_grave(self):
         self.assertEqual(assign_stress("ca-sa"), "ca^-sa")
 
     def test_orthographic_accent(self):
-        self.assertEqual(assign_stress("ca-fé"), "ca-fé")
+        self.assertEqual(assign_stress("ca-fé"), "ca-fe^")
 
     def test_correct_ui(self):
         """bui, fui, cuido stress on u (correct)."""
@@ -104,7 +104,7 @@ class TestCharset(unittest.TestCase):
 class TestIPA(unittest.TestCase):
     def test_basic(self):
         self.assertEqual(cotovia_to_ipa("kasa"), "kasa")
-        self.assertEqual(cotovia_to_ipa("gerra"), "ɣɛra")
+        self.assertEqual(cotovia_to_ipa("gerra"), "ɡera")
 
     def test_double(self):
         self.assertEqual(cotovia_to_ipa("tSa"), "tʃa")

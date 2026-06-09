@@ -9,7 +9,7 @@ Matches the Cotovia binary pipeline exactly:
      matching the binary's -t0 mode (phonemes only)
 """
 
-from .charset import letra
+from .charset import letra, to_minusculas
 from .exceptions import trata_excepcions_xe, trata_excepcions_w
 from .syllabify import syllabify
 from .stress import assign_stress
@@ -118,9 +118,12 @@ class Phonemizer:
     def _preprocess_word(self, word: str) -> str:
         """Apply pre-rule processing to a single word.
 
-        Pipeline: exceptions → syllabify → stress → timbre
+        Pipeline: lowercase → exceptions → syllabify → stress → timbre
         """
         w = word
+
+        # Lowercase — matches pasar_a_minusculas() in the C binary
+        w = to_minusculas(w)
 
         # Exception preprocessing
         xe_result = trata_excepcions_xe(w, self.lang)
