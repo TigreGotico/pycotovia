@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycotovia"
+version = "0.1.0"
+description = "Pure-Python Cotovia G2P phonemizer for Galician and Spanish"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "TigreGotico", email = "contact@tigregotico.com" }
+]
+keywords = ["g2p", "phonemizer", "tts", "galician", "spanish", "cotovia", "phonemes", "ipa"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+]
+
+[project.urls]
+Homepage = "https://github.com/TigreGotico/pycotovia"
+Repository = "https://github.com/TigreGotico/pycotovia"
+Issues = "https://github.com/TigreGotico/pycotovia/issues"
+
+[project.scripts]
+pycotovia = "pycotovia.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["pycotovia*"]
