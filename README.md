@@ -28,8 +28,8 @@ print(pycotovia.phonemize("Ola, como estás?"))      # → "ola komo estajs"
 print(pycotovia.phonemize("guerra", lang="gl"))      # → "gerra"
 
 # Spanish
-print(pycotovia.phonemize("México", lang="es"))      # → "Meksiko"
-print(pycotovia.phonemize("México", lang="gl"))      # → "MeSiko"
+print(pycotovia.phonemize("México", lang="es"))      # → "meksiko"
+print(pycotovia.phonemize("México", lang="gl"))      # → "meSiko"
 
 # IPA mapping
 print(pycotovia.cotovia_to_ipa("gerra"))              # → "ɣɛra"
@@ -72,7 +72,7 @@ See the [examples/](examples/) directory for:
 
 ## License
 
-GPL-3.0-or-later — same as the original Cotovia project.
+Apache-2.0 — this is a clean-room reimplementation in Python, not a derivative of the C++ source.
 
 ## Acknowledgements
 
