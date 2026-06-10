@@ -12,6 +12,9 @@ license = { text = "Apache-2.0" }
 authors = [
     { name = "TigreGotico", email = "contact@tigregotico.com" }
 ]
+dependencies = [
+    "orthography2ipa>=0.3.0a1",
+]
 keywords = ["g2p", "phonemizer", "tts", "galician", "spanish", "cotovia", "phonemes", "ipa"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -34,6 +37,9 @@ Issues = "https://github.com/TigreGotico/pycotovia/issues"
 
 [project.scripts]
 pycotovia = "pycotovia.cli:main"
+
+[project.entry-points."orthography2ipa.syllabify"]
+galician = "pycotovia.plugin:CotoviaSyllabifier"
 
 [tool.setuptools.packages.find]
 include = ["pycotovia*"]
