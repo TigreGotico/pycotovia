@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.1.1a1](https://github.com/TigreGotico/pycotovia/tree/0.1.1a1) (2026-06-09)
+## [0.1.1a1](https://github.com/TigreGotico/pycotovia/tree/0.1.1a1) (2026-06-18)
 
-[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/979edaaf757767fe0f629dcbe8fb673a2fba6057...0.1.1a1)
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.1.0...0.1.1a1)
 
 **Merged pull requests:**
 
-- feat: add gh-automations shared workflows and dynamic versioning [\#2](https://github.com/TigreGotico/pycotovia/pull/2) ([JarbasAl](https://github.com/JarbasAl))
+- fix: relicense GPL-3.0 \(source-derived port\) [\#4](https://github.com/TigreGotico/pycotovia/pull/4) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
