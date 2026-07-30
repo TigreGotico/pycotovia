@@ -7,11 +7,11 @@ Pure-Python G2P (grapheme-to-phoneme) phonemizer for **Galician** and **Spanish*
 
 ## Features
 
-- **Two languages** — Galician (`gl`) and Spanish (`es`) with language-specific exception lists and rewrite rules.
-- **Zero dependencies** — pure Python, no C extensions, no heavy ML models.
-- **Fast enough** — single-word latency is well under 1 ms on modern hardware.
-- **Parity-tested** — verified against the original Cotovia C binary for Galician (see [docs/parity.md](docs/parity.md)).
-- **IPA output** — optional mapping from Cotovia phoneme symbols to IPA.
+- **Two languages**: Galician (`gl`) and Spanish (`es`) with language-specific exception lists and rewrite rules.
+- **Zero dependencies**: pure Python, no C extensions, no heavy ML models.
+- **Fast enough**: single-word latency is well under 1 ms on modern hardware.
+- **Parity-tested**: verified against the original Cotovia C binary for Galician (see [docs/parity.md](docs/parity.md)).
+- **IPA output**: optional mapping from Cotovia phoneme symbols to IPA.
 
 ## Installation
 
@@ -55,31 +55,31 @@ cat words.txt | pycotovia -l gl > phonemes.txt
 
 | Aspect | pycotovia | Cotovia C binary |
 |--------|-----------|------------------|
-| Timbre (open/closed e/o) | Not applied in transcription mode | Same — only used for voice-building |
+| Timbre (open/closed e/o) | Not applied in transcription mode | Same: only used for voice-building |
 | Stress in `bui`, `fui`, `cuido` | Correctly shifts to `u` (`buj`, `fuj`, `kujDo`) | Bug: keeps stress on `i` (`bwi`, `fwi`, `kwiDo`) due to a precedence error in `aguda()` / `grave()` |
 
 See [docs/parity.md](docs/parity.md) for the full parity test results and the deliberate divergences.
 
 ## Documentation
 
-- [docs/architecture.md](docs/architecture.md) — pipeline overview and module map
-- [docs/parity.md](docs/parity.md) — verification against the Cotovia binary
-- [docs/api.md](docs/api.md) — public API reference
+- [docs/architecture.md](docs/architecture.md): pipeline overview and module map
+- [docs/parity.md](docs/parity.md): verification against the Cotovia binary
+- [docs/api.md](docs/api.md): public API reference
 
 ## Examples
 
 See the [examples/](examples/) directory for:
-- `basic_usage.py` — single words, phrases, and IPA
-- `spanish_usage.py` — Spanish-specific examples
-- `phrase_processing.py` — batch processing from a file
+- `basic_usage.py`: single words, phrases, IPA output
+- `spanish_usage.py`: Spanish-specific examples
+- `phrase_processing.py`: batch processing from a file
 
 ## How this port was made, and its licence (please read)
 
 This is an **AI-assisted, human-guided, test-driven** port. An AI assistant read
 the public Cotovia C++ source and reimplemented the G2P subsystem (transcription
-rules, syllabification, stress assignment, exception lists) in Python; a human
+rules, syllabification, stress assignment, exception lists) in Python. A human
 guided the effort and validated results against the original Cotovia binary. The
-human collaborators **never read the Cotovia C++ source themselves** — they drove
+human collaborators **never read the Cotovia C++ source themselves**: they drove
 and checked the work through the binary.
 
 Because the implementing AI **read the GPL source**, this is **not a clean-room
@@ -89,10 +89,10 @@ licensed **GPL-3.0-or-later** (see [LICENSE](LICENSE)).
 
 **Open questions we want to be transparent about** (not legal advice):
 
-- *Was this clean-room?* No — the implementing agent read the GPL source.
-- *Could it be relicensed permissively?* Almost certainly not; a port derived
+- *Was this clean-room?* No: the implementing agent read the GPL source.
+- *Could it be relicensed permissively?* Almost certainly not. A port derived
   from GPL source is a derivative work, so we keep GPL.
-- *Can an AI originate or "assign" a licence?* Unsettled — authorship/copyright of
+- *Can an AI originate or "assign" a licence?* Unsettled: authorship/copyright of
   AI-generated code is legally unclear. We apply GPL-3.0 as the conservative,
   upstream-respecting default rather than asserting any novel rights.
 

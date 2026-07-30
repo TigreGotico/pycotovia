@@ -99,7 +99,7 @@ In Galician (not Spanish), stressed `e` and `o` can be open or closed:
 - Closed o: /o/ (as in "boat") → written as `o` in Cotovia
 - Open o: /ɔ/ (as in "caught") → written as `O` in Cotovia
 
-Whether a vowel is open or closed depends on the surrounding consonants and the word. The Cotovia binary can compute this, but pycotovia does NOT apply it in transcription mode — this is intentional and matches the binary's `-t0` mode.
+Whether a vowel is open or closed depends on the surrounding consonants and the word. The Cotovia binary can compute this, but pycotovia does NOT apply it in transcription mode: this is intentional and matches the binary's `-t0` mode.
 
 ### The silent u
 
@@ -116,10 +116,10 @@ This is why the `q/g` guard exists in the stress logic: when shifting stress fro
 
 ## Diphthongs and triphthongs
 
-Diphthongs and triphthongs are sequences of vowels pronounced as a single syllable. They are not separate phonemes in the inventory — they are combinations of the vowels above.
+Diphthongs and triphthongs are sequences of vowels pronounced as a single syllable. They are not separate phonemes in the inventory: they are combinations of the vowels above.
 
 Examples:
-- `ai` → /ai/ (casa → no, wait: `ai` is in `aire` → /a.i.re/ — actually `ai` is a diphthong in `aigüe` → /aj.ɣe/)
+- `ai` → /ai/ (aigüe → /aj.ɣe/)
 - `ei` → /ei/ (reina → /rei.na/)
 - `oi` → /oi/ (oigo → /oi.ɣo/)
 - `au` → /au/ (auto → /au.to/)
@@ -163,6 +163,9 @@ cotovia_to_ipa("MeSiko")    # "meʃiko"
 
 ## See also
 
-- `docs/phonetics.md` — phonetics background for non-speakers
-- `docs/algorithm.md` — how the rules produce these phonemes
-- `docs/parity.md` — verification that pycotovia matches the binary
+- `docs/phonetics.md`: phonetics background for non-speakers
+- `docs/algorithm.md`: how the rules produce these phonemes
+- `docs/parity.md`: verification that pycotovia matches the binary
+
+---
+[← Phonetics](phonetics.md) · [Home](../README.md) · [Exceptions →](exceptions.md)

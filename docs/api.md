@@ -5,15 +5,15 @@
 Convert plain text to a phoneme string.
 
 **Parameters:**
-- `text` (str) — input text (Latin-1 or Unicode)
-- `lang` (str) — `"gl"` for Galician, `"es"` for Spanish
-- `tra` (int) — output level:
+- `text` (str): input text (Latin-1 or Unicode)
+- `lang` (str): `"gl"` for Galician, `"es"` for Spanish
+- `tra` (int): output level:
   - `1` = phonemes only (default)
   - `2` = phonemes + stress markers (`^`)
   - `3` = phonemes + stress + syllable separators (`-`)
   - `4` = raw rule-engine output (with `#` / `%` blocks)
 
-**Returns:** `str` — phoneme string in Cotovia notation
+**Returns:** `str`: phoneme string in Cotovia notation
 
 **Examples:**
 ```python
@@ -61,11 +61,11 @@ pycotovia [-l gl|es] < input.txt > output.txt
 
 These are not part of the public API but are documented for contributors:
 
-- `pycotovia.syllabify.syllabify(word)` — syllabify a single word
-- `pycotovia.stress.assign_stress(syllabified, lang)` — place stress marker
-- `pycotovia.engine.apply_rules(text, rules)` — run the rule engine
-- `pycotovia.charset.vocal(c)`, `consonante(c)` — Latin-1 char classification
-- `pycotovia.exceptions.trata_excepcions_xe(word, lang)`, `trata_excepcions_w(word)` — exception preprocessing
+- `pycotovia.syllabify.syllabify(word)`: syllabify a single word
+- `pycotovia.stress.assign_stress(syllabified, lang)`: place stress marker
+- `pycotovia.engine.apply_rules(text, rules)`: run the rule engine
+- `pycotovia.charset.vocal(c)`, `consonante(c)`: Latin-1 char classification
+- `pycotovia.exceptions.trata_excepcions_xe(word, lang)`, `trata_excepcions_w(word)`: exception preprocessing
 
 ## `extract_rules.py`
 
@@ -74,3 +74,6 @@ Build script that regenerates `rules_data.py` from the Cotovia C++ headers. Not 
 ```bash
 python extract_rules.py /path/to/cotovia/src/cotovia/include/alof_gal.hpp gl > pycotovia/rules_data.py
 ```
+
+---
+[← Parity](parity.md) · [Home](../README.md)
