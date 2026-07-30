@@ -6,9 +6,9 @@ pycotovia (like the Cotovia binary) uses hardcoded exception lists for words tha
 
 A purely rule-based G2P cannot handle:
 
-- **Etymological exceptions** — words borrowed from Greek/Latin where `x` is /ks/ instead of /ʃ/
-- **Foreign loanwords** — words like "sandwich" where `w` is pronounced /gu/ or /u/
-- **Proper nouns** — place names, brand names that have established pronunciation
+- **Etymological exceptions**: words borrowed from Greek/Latin where `x` is /ks/ instead of /ʃ/
+- **Foreign loanwords**: words like "sandwich" where `w` is pronounced /gu/ or /u/
+- **Proper nouns**: place names, brand names that have established pronunciation
 
 The Cotovia authors built these lists by hand over years of TTS development. pycotovia ports them directly.
 
@@ -157,7 +157,10 @@ def test_maxilo_exception(self):
 
 ## See also
 
-- `docs/phonetics.md` — phonetics background
-- `docs/algorithm.md` — full algorithm walkthrough
-- `docs/phonemes.md` — phoneme inventory
-- `docs/limitations.md` — what the system does not do
+- `docs/phonetics.md`: phonetics background
+- `docs/algorithm.md`: full algorithm walkthrough
+- `docs/phonemes.md`: phoneme inventory
+- `docs/limitations.md`: what the system does not do
+
+---
+[← Phonemes](phonemes.md) · [Home](../README.md) · [Limitations →](limitations.md)

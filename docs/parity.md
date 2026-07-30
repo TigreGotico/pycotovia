@@ -54,3 +54,6 @@ python3 tests/test_parity.py
 ```
 
 This requires the Cotovia binary to be built at `../cotovia-mirror/bin/cotovia`. If the binary is missing, the test skips.
+
+---
+[← Limitations](limitations.md) · [Home](../README.md) · [API →](api.md)

@@ -57,15 +57,15 @@ Punctuation is stripped during tokenization:
 - "Hello, world!" → `hello world` (the `,` and `!` are removed)
 - "¿Cómo?" → `como` (the `¿` and `?` are removed)
 
-This is intentional for G2P — the punctuation does not affect pronunciation. But if you need to preserve punctuation for downstream tasks (e.g., prosody modeling), you need to handle it separately.
+This is intentional for G2P: the punctuation does not affect pronunciation. But if you need to preserve punctuation for downstream tasks (e.g., prosody modeling), you need to handle it separately.
 
 ## No prosody
 
 pycotovia only produces phonemes. It does not produce:
 
-- **Intonation** — pitch contours for questions, statements, exclamations
-- **Rhythm** — stress timing, syllable duration
-- **Pauses** — phrase boundaries, breathing points
+- **Intonation**: pitch contours for questions, statements, exclamations
+- **Rhythm**: stress timing, syllable duration
+- **Pauses**: phrase boundaries, breathing points
 
 If you need prosody, you need a separate prosody model (e.g., the Cotovia prosody module, or an ML model).
 
@@ -80,9 +80,9 @@ pycotovia is a rule-based system. It does not use:
 
 The rules are hand-crafted (originally by the Cotovia authors) and cover the regular phonology of the language. This means:
 
-- **Predictable** — the same input always produces the same output
-- **Fast** — no GPU required, no model loading
-- **Limited** — cannot learn from data, cannot adapt to new words
+- **Predictable**: the same input always produces the same output
+- **Fast**: no GPU required, no model loading
+- **Limited**: cannot learn from data, cannot adapt to new words
 
 ## No language detection
 
@@ -98,17 +98,17 @@ Galician and Spanish do not use tone or vowel length to distinguish meaning (unl
 
 pycotovia is ideal for:
 
-- **TTS frontends** — generating phoneme strings for speech synthesis
-- **Pronunciation dictionaries** — batch-processing word lists
-- **Language learning tools** — showing pronunciation of words
-- **Phonetic analysis** — studying Galician/Spanish phonology
+- **TTS frontends**: generating phoneme strings for speech synthesis
+- **Pronunciation dictionaries**: batch-processing word lists
+- **Language learning tools**: showing pronunciation of words
+- **Phonetic analysis**: studying Galician/Spanish phonology
 
 pycotovia is NOT ideal for:
 
-- **Named entity recognition** — it does not know what is a name
-- **Speech recognition** — it goes text→phonemes, not phonemes→text
-- **Cross-lingual pronunciation** — it only does Galician/Spanish
-- **Real-time prosody** — it does not produce intonation or timing
+- **Named entity recognition**: it does not know what is a name
+- **Speech recognition**: it goes text→phonemes, not phonemes→text
+- **Cross-lingual pronunciation**: it only does Galician/Spanish
+- **Real-time prosody**: it does not produce intonation or timing
 
 ## Workarounds
 
@@ -131,7 +131,10 @@ The post-processor can add:
 
 ## See also
 
-- `docs/phonetics.md` — phonetics background
-- `docs/algorithm.md` — full algorithm walkthrough
-- `docs/phonemes.md` — phoneme inventory
-- `docs/exceptions.md` — exception word lists
+- `docs/phonetics.md`: phonetics background
+- `docs/algorithm.md`: full algorithm walkthrough
+- `docs/phonemes.md`: phoneme inventory
+- `docs/exceptions.md`: exception word lists
+
+---
+[← Exceptions](exceptions.md) · [Home](../README.md) · [Parity →](parity.md)
