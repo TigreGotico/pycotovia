@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0a1](https://github.com/TigreGotico/pycotovia/tree/0.3.0a1) (2026-08-02)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.1.1a2...0.3.0a1)
+
+**Merged pull requests:**
+
+- feat: multi-alphabet output via scriptconv [\#8](https://github.com/TigreGotico/pycotovia/pull/8) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.1a2](https://github.com/TigreGotico/pycotovia/tree/0.1.1a2) (2026-07-30)
 
 [Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.1.0...0.1.1a2)
