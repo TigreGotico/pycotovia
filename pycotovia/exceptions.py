@@ -1,5 +1,16 @@
 """Exception word lists — ported from trat_fon.cpp."""
 
+
+class AlphabetError(ValueError):
+    """Raised when an unsupported output alphabet is requested."""
+
+
+class UnmappedSymbolError(ValueError):
+    """Raised when a native Cotovía phoneme has no mapping to the requested
+    output alphabet in scriptconv's conversion tables."""
+
+
+
 X_PASA_A_KS = [
     "amplex", "anafilax", "anaptix", "anex", "anorex", "anor\xe9x",
     "antitoxi", "apirex", "apodix", "aprox", "asex", "asfix",

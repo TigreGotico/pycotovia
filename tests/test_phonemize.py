@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from pycotovia import phonemize, Phonemizer, cotovia_to_ipa
+from pycotovia import phonemize, Phonemizer, cotovia_to_ipa, ALPHABETS, AlphabetError, UnmappedSymbolError
 from pycotovia.syllabify import syllabify
 from pycotovia.stress import assign_stress
 from pycotovia.charset import vocal, consonante, es_diptongo, es_triptongo
@@ -46,6 +46,47 @@ class TestPhonemize(unittest.TestCase):
         p = Phonemizer(lang="gl")
         self.assertEqual(p.phonemize("casa").strip(), "kasa")
         self.assertEqual(p.phonemize("cantar").strip(), "kantar")
+
+
+class TestAlphabets(unittest.TestCase):
+    def test_default_is_native_cotovia(self):
+        """Parity: the default call is byte-identical to pre-scriptconv output."""
+        self.assertEqual(phonemize("casa", lang="gl"), "kasa ")
+        self.assertEqual(phonemize("guerra", lang="gl"), "gerra ")
+        self.assertEqual(phonemize("casa", lang="gl", alphabet="cotovia"), "kasa ")
+
+    def test_alphabets_enumerated_from_scriptconv(self):
+        self.assertIn("cotovia", ALPHABETS)
+        self.assertIn("ipa", ALPHABETS)
+        self.assertIn("x-sampa", ALPHABETS)
+
+    def test_ipa_output(self):
+        self.assertEqual(phonemize("casa", lang="gl", alphabet="ipa").strip(), "kasa")
+        self.assertEqual(phonemize("guerra", lang="gl", alphabet="ipa").strip(), "ɡera")
+        self.assertEqual(phonemize("luz", lang="gl", alphabet="ipa").strip(), "luθ")
+        self.assertEqual(phonemize("xente", lang="gl", alphabet="ipa").strip(), "ʃente")
+        self.assertEqual(phonemize("chave", lang="gl", alphabet="ipa").strip(), "tʃaβe")
+        self.assertEqual(phonemize("México", lang="es", alphabet="ipa").strip(), "meksiko")
+
+    def test_x_sampa_output(self):
+        """Spot check: X-SAMPA agrees with IPA for the tap ɾ, e.g. in 'cantar'."""
+        self.assertEqual(phonemize("cantar", lang="gl", alphabet="x-sampa").strip(), "kanta4")
+        self.assertEqual(phonemize("casa", lang="gl", alphabet="x-sampa").strip(), "kasa")
+
+    def test_unsupported_alphabet_raises(self):
+        with self.assertRaises(AlphabetError):
+            phonemize("casa", lang="gl", alphabet="klingon")
+
+    def test_unmapped_symbol_raises_not_silently_dropped(self):
+        """scriptconv's x-sampa table has no plain 'r' (alveolar trill) entry,
+        so Cotovía's 'rr' (trill) fails loudly for x-sampa instead of being
+        dropped or mistranslated. See PR discussion for the upstream gap."""
+        with self.assertRaises(UnmappedSymbolError):
+            phonemize("carro", lang="gl", alphabet="x-sampa")
+
+    def test_alphabet_requires_tra1(self):
+        with self.assertRaises(AlphabetError):
+            phonemize("guerra", lang="gl", tra=2, alphabet="ipa")
 
 
 class TestSyllabify(unittest.TestCase):
