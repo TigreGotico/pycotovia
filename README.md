@@ -8,10 +8,10 @@ Pure-Python G2P (grapheme-to-phoneme) phonemizer for **Galician** and **Spanish*
 ## Features
 
 - **Two languages**: Galician (`gl`) and Spanish (`es`) with language-specific exception lists and rewrite rules.
-- **Zero dependencies**: pure Python, no C extensions, no heavy ML models.
+- **One tiny dependency**: pure Python, no C extensions, no heavy ML models — [scriptconv](https://github.com/TigreGotico/scriptconv) is the only requirement.
 - **Fast enough**: single-word latency is well under 1 ms on modern hardware.
 - **Parity-tested**: verified against the original Cotovia C binary for Galician (see [docs/parity.md](docs/parity.md)).
-- **IPA output**: optional mapping from Cotovia phoneme symbols to IPA.
+- **Multi-alphabet output**: native Cotovía notation, IPA, X-SAMPA, ARPABET, Lexique, Kirshenbaum, or RFE, picked with one argument.
 
 ## Installation
 
@@ -38,6 +38,32 @@ print(pycotovia.phonemize("México", lang="gl"))      # → "meSiko"
 print(pycotovia.cotovia_to_ipa("gerra"))              # → "ɣɛra"
 ```
 
+## Output alphabets
+
+pycotovia's native output is Cotovía notation — the phoneme symbols of the
+original Cotovía TTS engine. The `alphabet` argument converts that native
+output to any alphabet supported by [scriptconv](https://github.com/TigreGotico/scriptconv):
+
+```python
+import pycotovia
+
+print(pycotovia.ALPHABETS)
+# ('cotovia', 'ipa', 'arpa', 'x-sampa', 'lexique', 'kirshenbaum', 'rfe')
+
+print(pycotovia.phonemize("guerra", lang="gl"))                        # → "gerra "  (native, default)
+print(pycotovia.phonemize("guerra", lang="gl", alphabet="ipa"))        # → "ɡera "
+print(pycotovia.phonemize("cantar", lang="gl", alphabet="x-sampa"))    # → "kanta4 "
+```
+
+The default stays the native Cotovía notation, so existing calls are unaffected.
+Conversion only applies at `tra=1` (phonemes only) — the stress and syllable
+markers available at higher `tra` levels have no equivalent in the other
+notations.
+
+A symbol with no equivalent in the target alphabet raises `UnmappedSymbolError`
+rather than being dropped or mistranslated. An unknown alphabet name raises
+`AlphabetError`, listing the accepted values.
+
 ## CLI
 
 ```bash
@@ -46,6 +72,9 @@ echo "Ola mundo" | pycotovia
 
 # Spanish
 echo "Hola mundo" | pycotovia -l es
+
+# IPA output
+echo "Ola mundo" | pycotovia -a ipa
 
 # From file
 cat words.txt | pycotovia -l gl > phonemes.txt

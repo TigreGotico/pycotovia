@@ -1,6 +1,6 @@
 # API reference
 
-## `pycotovia.phonemize(text, lang="gl", tra=1)`
+## `pycotovia.phonemize(text, lang="gl", tra=1, alphabet="cotovia")`
 
 Convert plain text to a phoneme string.
 
@@ -12,8 +12,17 @@ Convert plain text to a phoneme string.
   - `2` = phonemes + stress markers (`^`)
   - `3` = phonemes + stress + syllable separators (`-`)
   - `4` = raw rule-engine output (with `#` / `%` blocks)
+- `alphabet` (str): output phonetic alphabet, one of `pycotovia.ALPHABETS`.
+  Defaults to `"cotovia"` (native notation, no behavior change from prior
+  releases). Any other value converts the native output through
+  [scriptconv](https://github.com/TigreGotico/scriptconv). Only valid with
+  `tra=1` — raises `AlphabetError` otherwise.
 
-**Returns:** `str`: phoneme string in Cotovia notation
+**Returns:** `str`: phoneme string in Cotovia notation, or the requested `alphabet`.
+
+**Raises:**
+- `AlphabetError`: unknown `alphabet` value, or `alphabet` requested with `tra != 1`
+- `UnmappedSymbolError`: a phoneme has no mapping to the requested `alphabet`
 
 **Examples:**
 ```python
@@ -22,6 +31,8 @@ import pycotovia
 pycotovia.phonemize("guerra", lang="gl")        # "gerra"
 pycotovia.phonemize("guerra", lang="gl", tra=2)   # "g^erra"
 pycotovia.phonemize("guerra", lang="gl", tra=3)   # "g^e-rra"
+pycotovia.phonemize("guerra", lang="gl", alphabet="ipa")       # "ɡera "
+pycotovia.phonemize("cantar", lang="gl", alphabet="x-sampa")   # "kanta4 "
 ```
 
 ## `pycotovia.Phonemizer`
@@ -51,10 +62,16 @@ cotovia_to_ipa("kasa")    # "kasa"
 
 The raw mapping dict from Cotovia phoneme symbols to IPA strings.
 
+## `pycotovia.ALPHABETS`
+
+Tuple of alphabet identifiers accepted by the `alphabet` argument, enumerated
+from scriptconv's convention registry (`"cotovia"`, `"ipa"`, `"x-sampa"`,
+`"arpa"`, `"lexique"`, `"kirshenbaum"`, `"rfe"`).
+
 ## CLI
 
 ```bash
-pycotovia [-l gl|es] < input.txt > output.txt
+pycotovia [-l gl|es] [-a alphabet] < input.txt > output.txt
 ```
 
 ## Internal modules

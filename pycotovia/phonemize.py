@@ -10,12 +10,13 @@ Matches the Cotovia binary pipeline exactly:
 """
 
 from .charset import letra, to_minusculas
-from .exceptions import trata_excepcions_xe, trata_excepcions_w
+from .exceptions import trata_excepcions_xe, trata_excepcions_w, AlphabetError
 from .syllabify import syllabify
 from .stress import assign_stress
 from .timbre import assign_timbre
 from .engine import apply_rules
 from .rules_data import GALEGO_RULES_SV, CASTELLANO_RULES_SV
+from .alphabets import ALPHABETS, NATIVE_ALPHABET, to_alphabet
 
 
 def _strip_t0(s: str, tra: int = 1) -> str:
@@ -69,15 +70,22 @@ class Phonemizer:
         self.lang = lang
         self.rules = GALEGO_RULES_SV if lang == "gl" else CASTELLANO_RULES_SV
 
-    def phonemize(self, text: str, tra: int = 1) -> str:
+    def phonemize(self, text: str, tra: int = 1, alphabet: str = NATIVE_ALPHABET) -> str:
         """Convert plain text to a phoneme string.
 
         Args:
             text: Input text (Latin-1 or Unicode)
             tra: Output level (1=phonemes, 2=+stress, 3=+syllables, 4=raw)
+            alphabet: Output phonetic alphabet. Defaults to pycotovia's
+                native Cotovía notation (no behavior change from prior
+                releases). Any other value is produced by converting the
+                native output through scriptconv; see :data:`ALPHABETS` for
+                the full list of accepted identifiers. Only valid together
+                with ``tra=1`` — alphabet conversion is not defined over the
+                stress/syllable-separator markers emitted at higher levels.
 
         Returns:
-            Phoneme string (Cotovia notation)
+            Phoneme string in the requested alphabet.
         """
         # Step 1: Collect words
         words = self._tokenize(text)
@@ -95,8 +103,19 @@ class Phonemizer:
 
         # Step 5: Strip per tra level
         if tra >= 4:
-            return phoneme_phrase
-        result = _strip_t0(phoneme_phrase, tra=tra)
+            result = phoneme_phrase
+        else:
+            result = _strip_t0(phoneme_phrase, tra=tra)
+
+        # Step 6: Convert to the requested output alphabet, if not native
+        if alphabet != NATIVE_ALPHABET:
+            if tra != 1:
+                raise AlphabetError(
+                    "alphabet conversion is only supported with tra=1 "
+                    "(phonemes only) — stress/syllable markers have no "
+                    "equivalent in other notations"
+                )
+            result = to_alphabet(result, alphabet)
 
         return result
 
@@ -149,7 +168,7 @@ class Phonemizer:
         return s
 
 
-def phonemize(text: str, lang: str = "gl", tra: int = 1) -> str:
+def phonemize(text: str, lang: str = "gl", tra: int = 1, alphabet: str = NATIVE_ALPHABET) -> str:
     """Convenience function — phonemize text in one call."""
     p = Phonemizer(lang)
-    return p.phonemize(text, tra=tra)
+    return p.phonemize(text, tra=tra, alphabet=alphabet)
