@@ -78,11 +78,13 @@ class TestAlphabets(unittest.TestCase):
             phonemize("casa", lang="gl", alphabet="klingon")
 
     def test_unmapped_symbol_raises_not_silently_dropped(self):
-        """scriptconv's x-sampa table has no plain 'r' (alveolar trill) entry,
-        so Cotovía's 'rr' (trill) fails loudly for x-sampa instead of being
-        dropped or mistranslated. See PR discussion for the upstream gap."""
+        """ARPABET has no symbol for the voiced bilabial approximant/fricative
+        β (Galician intervocalic b/v, e.g. 'vivir' -> biβiɾ). This is an
+        inherent gap — ARPA's inventory is built for English phonology, which
+        has no β — not a scriptconv omission that will ever be "fixed", so
+        it fails loudly instead of being dropped or mistranslated."""
         with self.assertRaises(UnmappedSymbolError):
-            phonemize("carro", lang="gl", alphabet="x-sampa")
+            phonemize("vivir", lang="gl", alphabet="arpa")
 
     def test_alphabet_requires_tra1(self):
         with self.assertRaises(AlphabetError):
