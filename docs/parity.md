@@ -30,6 +30,14 @@ an earlier version of this file said "the binary emits `buj`" and "there are
 no deliberate divergences". The upstream binary emits `bwi^`, and there are
 two deliberate divergences. Build the oracle from a clean checkout.
 
+> **Do not trust any parity number in this repository dated before
+> 2026-08-03.** Every measurement taken before the audit — in earlier
+> revisions of this file, in commit messages, in pull request bodies, and in
+> the `96.4%` figure that the README once carried — was produced against the
+> patched binary. Those numbers are not comparable with the ones below and
+> must not be quoted. The current numbers, and every number added after this
+> date, come from `tools/parity_harness.py` against a clean build.
+
 pycotovia's `tra` levels equal the binary's internal `opciones.tra`, which is
 one more than the `-t` flag on the command line:
 
