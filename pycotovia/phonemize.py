@@ -52,6 +52,15 @@ def _split_hyphenated(token: str) -> list[str]:
 #: where the binary has the phrase-initial occlusive (b).
 SENTENCE_SEPARATORS = ".:;"
 
+#: Contractions that Cotovia rewrites before it does anything else.
+#: `Preproceso::transformacion_de_contraccion()` in `preproc.cpp` replaces the
+#: written form of the preposition `a` plus the masculine article `o(s)` with
+#: the spoken form, so `ao` is transcribed as `ó` and not letter by letter.
+CONTRACCIONS = {
+    "ao": "\xf3",
+    "aos": "\xf3s",
+}
+
 
 def _split_sentences(text: str) -> list[str]:
     """Split input text into the sentences the binary would transcribe."""
@@ -229,6 +238,9 @@ class Phonemizer:
         """
         # Lowercase — matches pasar_a_minusculas() in the C binary
         w = to_minusculas(word)
+
+        # Contraction rewrite, before syllabification, as in preproc.cpp
+        w = CONTRACCIONS.get(w, w)
 
         s = syllabify(w)
         s = assign_stress(s, self.lang)
