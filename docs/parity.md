@@ -22,21 +22,28 @@ string.
 
 ## The oracle
 
-The oracle is the binary built from an **unmodified** `cotovia-mirror`
-checkout. This matters. Earlier parity work in this repository was measured
-against a local checkout that had been patched in place with the fix from
-`cotovia-mirror` PR #2, and the resulting numbers and conclusions were wrong:
-an earlier version of this file said "the binary emits `buj`" and "there are
-no deliberate divergences". The upstream binary emits `bwi^`, and there are
-two deliberate divergences. Build the oracle from a clean checkout.
+The reference is the **fixed** build: upstream `cotovia-mirror` plus the two
+adjudicated bug fixes (`cotovia-mirror` PR #2 and PR #4). Every headline
+number below is measured against it, and it is what pycotovia reproduces by
+default.
 
-> **Do not trust any parity number in this repository dated before
-> 2026-08-03.** Every measurement taken before the audit — in earlier
-> revisions of this file, in commit messages, in pull request bodies, and in
-> the `96.4%` figure that the README once carried — was produced against the
-> patched binary. Those numbers are not comparable with the ones below and
-> must not be quoted. The current numbers, and every number added after this
-> date, come from `tools/parity_harness.py` against a clean build.
+The **pristine** build — stock upstream, defects included — is the second
+oracle. `keep_bugs=True` reproduces it. Both builds and the exhaustive
+divergence table between them are in [oracles.md](oracles.md).
+
+```python
+phonemize("fui cuido", tra=2)                   # fixed build, the default
+phonemize("fui cuido", tra=2, keep_bugs=True)   # stock upstream binary
+```
+
+Each oracle is paired with the behaviour it defines. Scoring default
+pycotovia against the pristine build, or `keep_bugs=True` against the fixed
+build, measures the difference between the two binaries and nothing useful
+about the port. The harness enforces the pairing.
+
+Numbers taken before 2026-08-03 were measured against the fixed build and
+remain valid as such, but the corpus and the method have changed, so they are
+not comparable with the tables below. Quote the current numbers.
 
 pycotovia's `tra` levels equal the binary's internal `opciones.tra`, which is
 one more than the `-t` flag on the command line:
@@ -60,22 +67,27 @@ token of that sentence as wrong. At `tra=4` the binary's `#%pausa N%#` and
 `%prop N%` markers are stripped from both sides before comparison, because
 pycotovia does not emit them.
 
-**5000 Galician Wikipedia sentences, against the upstream binary:**
+**5000 Galician Wikipedia sentences.** Default pycotovia against the fixed
+build, and `keep_bugs=True` against the pristine build:
+
+| Mode | Words (fixed) | Sentences (fixed) | Words (pristine) | Sentences (pristine) |
+|------|---------------|-------------------|------------------|----------------------|
+| `tra=1` / `-t0` | 96.67% (46427/48024) | 90.38% (4519/5000) | 96.68% (46429/48024) | 90.42% (4521/5000) |
+| `tra=2` / `-t1` | 96.44% (46314/48024) | 88.68% (4434/5000) | 96.44% (46315/48024) | 88.70% (4435/5000) |
+| `tra=3` / `-t2` | 96.09% (46147/48024) | 85.74% (4287/5000) | 96.09% (46147/48024) | 85.74% (4287/5000) |
+| `tra=4` / `-t3` | 85.07% (40845/48013) | 59.40% (2970/5000) | 85.07% (40845/48013) | 59.40% (2970/5000) |
+
+The two columns track each other to within two tokens, which is the check that
+`keep_bugs` is doing its job: both modes reproduce their own oracle equally
+well, so the remaining gap is the unported subsystems and not the fixes.
+
+**33 ProxectoNos test sentences.** Identical against either oracle:
 
 | Mode | Words | Sentences |
 |------|-------|-----------|
-| `tra=1` / `-t0` | 95.60% (45912/48024) | 80.86% (4043/5000) |
-| `tra=2` / `-t1` | 95.36% (45798/48024) | 79.36% (3968/5000) |
-| `tra=3` / `-t2` | 95.01% (45630/48024) | 76.68% (3834/5000) |
-| `tra=4` / `-t3` | 85.04% (40829/48013) | 59.20% (2960/5000) |
-
-**33 ProxectoNos test sentences, against the upstream binary:**
-
-| Mode | Words | Sentences |
-|------|-------|-----------|
-| `tra=1` / `-t0` | 99.45% (359/361) | 93.94% (31/33) |
-| `tra=2` / `-t1` | 99.45% (359/361) | 93.94% (31/33) |
-| `tra=3` / `-t2` | 98.89% (357/361) | 87.88% (29/33) |
+| `tra=1` / `-t0` | 100% (361/361) | 100% (33/33) |
+| `tra=2` / `-t1` | 100% (361/361) | 100% (33/33) |
+| `tra=3` / `-t2` | 99.45% (359/361) | 93.94% (31/33) |
 | `tra=4` / `-t3` | 93.35% (337/361) | 63.64% (21/33) |
 
 The ProxectoNos figures are much higher than the Wikipedia figures because
@@ -142,76 +154,27 @@ Status values:
 | `seleccion_unidades.cpp`, `descriptor.cpp`, `crea_descriptores.cpp`, `distancia_espectral.cpp`, `procesado_senhal.cpp`, `audio.cpp`, `locutor.cpp`, `cache.cpp`, `indices.cpp`, `matriz.cpp`, `estadistica.cpp` | synthesis | — | OUT-OF-SCOPE |
 | `letras.cpp`, `utilidades.cpp`, `perfhash.cpp`, `path_list.cpp`, `gestor_busquedas_memoria.cpp`, `configuracion.cpp`, `options.cpp`, `interfaz_ficheros.cpp` | support | `charset.py`, `lookup.py` | PORTED-PARTIAL, as needed |
 
-## Deliberate divergences
+## The two adjudicated bug fixes
 
 The binary is the oracle, except where an upstream defect is uncontroversial.
-Those are fixed here and documented by a reference-only pull request against
-`TigreGotico/cotovia-mirror`, which is never merged.
+Those are fixed in the reference build and in pycotovia's default behaviour,
+and each one is documented by a reference-only pull request against
+`TigreGotico/cotovia-mirror`.
 
-### 1. Operator precedence in `aguda()` and `grave()`
+[oracles.md](oracles.md) carries the full case for each fix — the C evidence,
+the proof of intent, the Galician phonology, and the exhaustive divergence
+table between the two builds. In summary:
 
-`sil_acen.cpp:434` and `sil_acen.cpp:453`:
+| Fix | Defect | Effect | Reference PR |
+|-----|--------|--------|--------------|
+| 1 | `(*p-2)` parses as `((*p)-2)` in `aguda()`/`grave()`, so the silent-`u` guard fires for every `i` | rising `ui` outside `qu`/`gu` keeps the stress on the `i`: `fwi^` instead of `fu^j` | [#2](https://github.com/TigreGotico/cotovia-mirror/pull/2) |
+| 2 | `cont++` in the guard of the diacritic loop, so entry 0 (`"é"`) is never compared | `é` comes out closed at `-t0..-t2`, and open at `-t3` from the prosodic stage | [#4](https://github.com/TigreGotico/cotovia-mirror/pull/4) |
 
-```c
-if (!((*(p-1)=='u') && p>palabra+1 && ( (*p-2)=='q' || (*p-2)=='g' ) ))
-```
-
-`*p-2` is `(*p)-2`, not `*(p-2)`. When `*p` is `'i'` (0x69), `(*p)-2` is 0x67,
-which is `'g'`. The guard is therefore always true for every `i`, the stress
-never shifts back, and rising `ui` diphthongs come out wrong. The comparison
-is syntactically valid and semantically meaningless: it compares the result of
-character arithmetic against a letter. The same line reads `*(p-1)` correctly.
-
-* Upstream: `bui` → `bwi^`, `fui` → `fwi^`, `cuido` → `kwi^Do`
-* pycotovia: `bu^j`, `fu^j`, `ku^jDo`
-* Blast radius: 19 of 48024 words (0.04%), 17 of 5000 sentences
-* Reference PR: [cotovia-mirror #2](https://github.com/TigreGotico/cotovia-mirror/pull/2)
-
-### 2. Off-by-one in `diacritico_dif_aberta_pechada()`
-
-`sil_acen.cpp:535`:
-
-```c
-cont=0;
-while (*diacriticos_oposicion_aberta_pechada[cont++]!=0 ){
-   if (strcmp(diacriticos_oposicion_aberta_pechada[cont],pal_entrada)==0){
-```
-
-`cont++` is in the loop guard, so the guard tests entry N and the body
-compares entry N+1. Entry 0 is `"é"` and is never compared. The `"\0"`
-terminator is compared instead, and can never match. The list is a table of
-words whose graphic accent marks an open/closed opposition rather than stress.
-`"é"`, the third person of *ser*, is the paradigm case and the reason the
-table exists. Losing exactly the first element while gaining a comparison
-against the terminator is the signature of the `cont++` placement, not a
-design.
-
-Verified against the binary: `"ó"` (entry 1) and `"só"` (entry 20) both match;
-`"é"` (entry 0) does not.
-
-* Upstream at `-t0..-t2`: `é` → `e^`, closed
-* pycotovia at `tra=1..3`: `é` → `E^`, open
-* Reference PR: [cotovia-mirror #4](https://github.com/TigreGotico/cotovia-mirror/pull/4)
-
-**The blast radius is large, so read this before you rely on `tra=1..3`.** The
-word `é` occurs 508 times in the 5000-sentence corpus. Taking the fix costs
-1.04% of words and 9.2% of sentences at `tra=1..3` when measured against the
-upstream binary:
-
-| Mode | Words, with the fix | Words, replicating the bug |
-|------|---------------------|----------------------------|
-| `tra=1` | 95.03% | 96.07% |
-| `tra=2` | 94.80% | 95.84% |
-| `tra=3` | 94.45% | 95.49% |
-| `tra=4` | 84.55% | 84.55% |
-
-`tra=4` does not change. At `-t3` the prosodic stage opens `é` to `E^` anyway,
-so the mode that the Cotovia-alphabet voices were trained on gives the same
-string either way. That is why the fix is taken: it costs nothing downstream
-and it removes a defect from the phoneme-only modes.
-
-If you need bug-compatible `tra=1..3` output, remove `"é"` from
-`DIACRITICOS_OPOSICION` in `pycotovia/stress.py`.
+Neither fix costs anything against the reference build: by construction,
+default pycotovia and the fixed binary agree on both. Against the pristine
+build the two fixes account for 527 of 48024 tokens (1.097%) at `-t0..-t2` and
+18 tokens (0.041%) at `-t3`. `keep_bugs=True` reproduces the pristine build,
+so nothing that depends on stock output is stranded.
 
 ## Replicated quirks, not fixed
 
@@ -240,6 +203,23 @@ match. One word still does not:
 `twist` is an exact match in `w_pronunciase_u`, so the `w` becomes `u` and the
 form should be `tui^st`. The binary's extra `e` is not explained yet.
 
+**A one-letter word alone on a line loses the open/closed opposition.** The
+binary transcribes `é` as `e^` and `ó` as `o^` when the whole input line is
+that single letter, but `E^` and `O^` as soon as any other word is present:
+
+```
+[é]     -> e^        [é bo]  -> E^ Bo^
+[ó]     -> o^        [ó bo]  -> O^ Bo^
+[só]    -> sO^       [nós]   -> nO^s
+```
+
+Longer one-word lines are unaffected, so this is specific to single-character
+words. pycotovia opens them in every position. The cause is not identified
+yet, and the input is degenerate — Cotovia is a sentence-level system — so
+this is recorded rather than replicated. It matters only if you call the API
+one word at a time with a bare `é` or `ó`. Every parity number in this
+document is measured on sentences, so it is not affected.
+
 ## Where the remaining gap is
 
 Every differing token at `tra=4` over the 5000-sentence corpus, grouped by
@@ -257,26 +237,31 @@ Pause markers therefore change the phoneme string. They are not cosmetic.
 
 ## Reproducing these numbers
 
-```bash
-# Oracle: a clean checkout, with no local patches.
-git clone https://github.com/TigreGotico/cotovia-mirror
-make -C cotovia-mirror/src/cotovia
+Build both oracles as described in [oracles.md](oracles.md), then:
 
-python3 tools/parity_harness.py corpus.txt \
-    --binary cotovia-mirror/bin/cotovia \
-    --json report.json
+```bash
+# The headline numbers: default pycotovia against the fixed build.
+python3 tools/parity_harness.py corpus.txt --oracle fixed --json report.json
+
+# keep_bugs=True against stock upstream.
+python3 tools/parity_harness.py corpus.txt --oracle pristine
+
+# Both, plus the divergence table between the two builds.
+python3 tools/parity_harness.py corpus.txt --oracle both
 ```
 
 The corpus is plain text, one sentence per line, with no sentence-final
 punctuation. The harness adds it. Give the binary one sentence per process:
 piping many lines in at once makes it merge some of them.
 
-The in-repo regression suite runs separately and needs the binary at
-`../cotovia-mirror/bin/cotovia`:
+The in-repo regression suite runs separately. It expects the fixed build at
+`../cotovia-mirror/bin/cotovia` and the pristine build at
+`../cotovia-pristine/bin/cotovia`, overridable with `COTOVIA_BIN` and
+`COTOVIA_BIN_PRISTINE`:
 
 ```bash
 python3 -m pytest tests/test_parity.py
 ```
 
 ---
-[← Limitations](limitations.md) · [Home](../README.md) · [API →](api.md)
+[← Limitations](limitations.md) · [Home](../README.md) · [Oracles →](oracles.md)
