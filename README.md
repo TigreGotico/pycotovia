@@ -91,8 +91,8 @@ cat words.txt | pycotovia -l gl > phonemes.txt
 | Word category | First entry in `palabrasFuncion.txt` | Viterbi tagger over the dictionaries |
 | Text normalisation | Not ported | Numbers, dates and abbreviations expanded |
 
-On 5000 Galician Wikipedia sentences, pycotovia reproduces 95.0% of the
-binary's words at `tra=1` and 84.6% at `tra=4`. It is not a drop-in
+On 5000 Galician Wikipedia sentences, pycotovia reproduces 95.6% of the
+binary's words at `tra=1` and 85.0% at `tra=4`. It is not a drop-in
 replacement for the binary. [docs/parity.md](docs/parity.md) gives the number
 for every mode, a module-by-module feature matrix, and the cause of each
 remaining gap.

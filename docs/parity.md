@@ -56,10 +56,10 @@ pycotovia does not emit them.
 
 | Mode | Words | Sentences |
 |------|-------|-----------|
-| `tra=1` / `-t0` | 95.03% (45639/48024) | 76.80% (3840/5000) |
-| `tra=2` / `-t1` | 94.80% (45525/48024) | 75.38% (3769/5000) |
-| `tra=3` / `-t2` | 94.45% (45357/48024) | 72.88% (3644/5000) |
-| `tra=4` / `-t3` | 84.55% (40594/48013) | 56.78% (2839/5000) |
+| `tra=1` / `-t0` | 95.60% (45912/48024) | 80.86% (4043/5000) |
+| `tra=2` / `-t1` | 95.36% (45798/48024) | 79.36% (3968/5000) |
+| `tra=3` / `-t2` | 95.01% (45630/48024) | 76.68% (3834/5000) |
+| `tra=4` / `-t3` | 85.04% (40829/48013) | 59.20% (2960/5000) |
 
 **33 ProxectoNos test sentences, against the upstream binary:**
 
@@ -104,15 +104,17 @@ Status values:
 |---|---|---|---|
 | `sep_pal.cpp` — `tokenizar` | all | `Phonemizer._tokenize` | PORTED-PARTIAL: hyphen and clitic handling ported; the flex/bison input markup grammar (`lex.yy.cpp`, `variantes.tab.cpp`) is not |
 | `clas_pal.cpp` — `clasificar_palabras` | all | implicit | PORTED-PARTIAL: punctuation and letter classes only; no numeral, date, Roman-numeral or acronym classes |
-| `preproc.cpp` — `preprocesa` | all | — | NOT-PORTED |
+| `preproc.cpp` — `transformacion_de_contraccion` | all | `phonemize.CONTRACCIONS` | PORTED-VERIFIED |
+| `preproc.cpp` — everything else in `preprocesa` | all | — | NOT-PORTED |
 | `xen_nun.cpp` — numbers to words | all, through `preprocesa` | — | NOT-PORTED |
 | `gbm_abreviaturas.cpp` — abbreviation expansion | all, through `preprocesa` | — | NOT-PORTED |
 | `leer_frase.cpp` — sentence reading and splitting | all | `_split_sentences` | PORTED-PARTIAL: splits on `.:;` only |
 | `sil_acen.cpp` — `silabificar` | all | `syllabify.py` | PORTED-PARTIAL: vowel-sequence handling differs |
 | `sil_acen.cpp` — `acentuar_prosodicamente`, `aguda`, `grave` | all | `stress.py` | PORTED-VERIFIED, with one DIVERGENCE (PR #2) |
 | `sil_acen.cpp` — `diacritico_dif_aberta_pechada` | all | `stress.diacritico_dif_aberta_pechada` | DIVERGENCE (PR #4) |
-| `trat_fon.cpp` — `tratamento_das_excepcions_da_xe` | all | `exceptions.trata_excepcions_xe` | PORTED-PARTIAL: the list lookup is a full scan, not the binary's binary search |
-| `trat_fon.cpp` — `tratamento_das_excepcions_da_w` | all | `exceptions.trata_excepcions_w` | PORTED-PARTIAL: rewrites the first `w` only; the C rewrites all of them and falls back to `b` |
+| `trat_fon.cpp` — `tratamento_das_excepcions_da_xe` | all | `exceptions.trata_excepcions_xe` | PORTED-VERIFIED |
+| `trat_fon.cpp` — `tratamento_das_excepcions_da_w` | all | `exceptions.trata_excepcions_w` | PORTED-VERIFIED, except `twist` |
+| `trat_fon.cpp` — `comprobar_en_lista_de_inicio_de_palabras` | all | `lookup.buscar_inicio` | PORTED-VERIFIED |
 | `transcripcion.cpp` — rule tables and `transcribe` | all | `engine.py`, `rules_data.py` | PORTED-VERIFIED |
 | `transcripcion.cpp` — `sacar_transcripcion` output filter | all | `_strip_t0` | PORTED-VERIFIED |
 | `transcripcion.cpp` — `transformar_a_alofonos` | `tra=4` | `engine.py`, same tables | PORTED-PARTIAL: the comment-preserving and intonation-break wrapper is not ported |
@@ -219,12 +221,16 @@ known from the source. pycotovia uses a full scan, so it reaches entries that
 the binary never does. That is an accidental divergence and a gap to close,
 not a fix to keep:
 
+`lookup.buscar_inicio()` is now the faithful port and is wired into the x and
+w exception paths, so `luxar`, `newton`, `wolfram`, `darwin` and `whisky` all
+match. One word still does not:
+
 | Input | pycotovia | Upstream |
 |-------|-----------|----------|
-| `luxar` | `luksa^r` | `luSa^r` |
-| `newton` | `ne^wtoN` | `ne^BtoN` |
-| `wolfram` | `Bolfra^m` | `bolfra^m` |
 | `twist` | `twi^st` | `tewi^st` |
+
+`twist` is an exact match in `w_pronunciase_u`, so the `w` becomes `u` and the
+form should be `tui^st`. The binary's extra `e` is not explained yet.
 
 ## Where the remaining gap is
 
@@ -236,7 +242,7 @@ cause:
 | Letter case on `d`, `b`, `g` | 420 | Pause markers. The binary's `#%pausa%#` puts the next word in phrase-initial position, so the stop stays occlusive. pycotovia has no pause model, so the rule engine makes it fricative. |
 | Tonicity (`^`) | 603 | The Viterbi category tagger. `sobre`, `onde`, `segundo`, `contra`, `baixo`, `un`, `e` and `i` change tonicity with their category. |
 | Letter case on `e`, `o` | 477 | Vowel timbre, mostly verb forms: `foron`, `temas`, `lemos`, `teñen`. `manexo_do_timbre_verbal()` and `verbos.txt` are not ported. |
-| Segmental | 812 | Mostly the `ao`/`aos` contraction (209). The rest is syllabification of vowel sequences (`maior`, `muíños`, `incluíndo`, `saíu`) and the exception-list lookup. |
+| Segmental | see note | The `ao`/`aos` contraction (209 tokens) and the exception-list lookup are now ported. What remains is the syllabification of vowel sequences (`maior`, `muíños`, `incluíndo`, `saíu`). |
 | Token count | 448 sentences | Text normalisation: abbreviations (`vol.` → `volume`, `páx.` → `páxina`, `r/` → `rúa`), acronyms spelled letter by letter (`NBA` → `ene be a`), and numerals. |
 
 Pause markers therefore change the phoneme string. They are not cosmetic.
