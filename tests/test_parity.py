@@ -4,9 +4,16 @@
 This test requires the Cotovia binary to be built at:
     ../cotovia-mirror/bin/cotovia
 
+The checkout must be UNMODIFIED. Building the oracle from a locally patched
+tree silently invalidates every number this file produces; it has happened
+once already. See docs/parity.md.
+
+Set COTOVIA_BIN to point somewhere else.
+
 If the binary is missing, the test skips.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -17,8 +24,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pycotovia import phonemize
 
-# Path to the Cotovia binary
-COTOVIA_BIN = Path(__file__).resolve().parent.parent.parent / "cotovia-mirror" / "bin" / "cotovia"
+# Path to the Cotovia binary, built from an unmodified cotovia-mirror checkout.
+COTOVIA_BIN = Path(os.environ.get(
+    "COTOVIA_BIN",
+    Path(__file__).resolve().parent.parent.parent / "cotovia-mirror" / "bin" / "cotovia",
+))
 
 WORDS = [
     "casa", "cantar", "canon", "canons",
@@ -163,6 +173,26 @@ OPEN_DIVERGENCE_SENTENCES = (
     "puxo o anexo ao final",
 )
 
+#: Adjudicated upstream bugs. pycotovia is deliberately different here, and
+#: each entry is documented by a reference-only PR against cotovia-mirror.
+#: (input, pycotovia at tra=1, upstream binary at -t0, reference PR)
+DELIBERATE_DIVERGENCES = (
+    ("bui", "buj", "bwi", "cotovia-mirror#2"),
+    ("fui", "fuj", "fwi", "cotovia-mirror#2"),
+    ("cuido", "kujDo", "kwiDo", "cotovia-mirror#2"),
+    ("é", "E", "e", "cotovia-mirror#4"),
+)
+
+#: Sentences in SENTENCES that contain an adjudicated divergence, so they
+#: cannot be asserted equal to the binary at tra=1..3.
+#: They are still asserted equal at tra=4, where the divergence disappears.
+DIVERGENT_SENTENCES = frozenset({
+    "el é o meu irmán",
+})
+
+#: Words in WORDS that contain an adjudicated divergence.
+DIVERGENT_WORDS = frozenset({"bui", "fui", "cuido"})
+
 KNOWN_DIVERGENCES = {
     "luxar": "luSa^r",      # prefix match vs the binary's binary search
     "twist": "tewi^st",     # w exception lists
@@ -252,6 +282,8 @@ class TestParity(unittest.TestCase):
     def test_all_words(self):
         failures = []
         for w in UNIQUE_WORDS:
+            if w in DIVERGENT_WORDS:
+                continue  # adjudicated bug fix — see test_deliberate_divergences
             py_result = phonemize(w, lang="gl").strip()
             bin_result = self._run_binary(w)
             if py_result != bin_result:
@@ -263,18 +295,62 @@ class TestParity(unittest.TestCase):
                 msg += f"  {w}: py={py!r} bin={bi!r}\n"
             self.fail(msg)
 
-    def test_ui_diphthong_matches_binary(self):
-        """bui/fui/cuido: pycotovia and the binary agree.
+    def test_deliberate_divergences(self):
+        """Both sides of every adjudicated bug fix are pinned.
 
-        docs/parity.md used to list these three words as deliberate
-        divergences, on the grounds that a `*p-2` vs `*(p-2)` precedence bug
-        in the C aguda()/grave() made the binary emit `bwi`/`fwi`/`kwiDo`.
-        The binary does not do that — it emits the same forms pycotovia does.
-        There are no deliberate divergences left.
+        These are the only places where pycotovia is knowingly different from
+        the binary. Each one is an upstream defect documented by a
+        reference-only PR against TigreGotico/cotovia-mirror. If either side
+        moves, this test fails and docs/parity.md needs an update.
         """
-        for w, expected in (("bui", "buj"), ("fui", "fuj"), ("cuido", "kujDo")):
-            self.assertEqual(phonemize(w, lang="gl").strip(), expected, w)
-            self.assertEqual(self._run_binary(w), expected, w)
+        for word, py_expected, bin_expected, pr in DELIBERATE_DIVERGENCES:
+            self.assertEqual(phonemize(word, lang="gl").strip(), py_expected,
+                             f"{word}: pycotovia side of {pr}")
+            self.assertEqual(self._run_binary(word), bin_expected,
+                             f"{word}: binary side of {pr}. If this fails, the "
+                             "oracle was built from a patched checkout.")
+
+    def test_pr2_precedence_fix_is_present(self):
+        """cotovia-mirror PR #2: `*p-2` vs `p[-2]` in aguda() and grave().
+
+        `(*p-2)=='g'` is `((*p)-2)=='g'`, which is always true when `*p` is
+        'i' (0x69 - 2 == 0x67 == 'g'). The guard that should protect the
+        silent `u` of `qu`/`gu` therefore fires for every `i`, and the stress
+        never moves back onto the first vowel of a rising `ui` diphthong.
+
+        pycotovia reads the character two positions back, as intended.
+        """
+        # The fix only changes rising ui: stress lands on u, i becomes a glide.
+        self.assertEqual(phonemize("bui", lang="gl", tra=2).strip(), "bu^j")
+        self.assertEqual(phonemize("cuido", lang="gl", tra=2).strip(), "ku^jDo")
+        # The silent u of gu/qu is still protected — the guard's real purpose.
+        self.assertEqual(phonemize("guiar", lang="gl", tra=2).strip(), "gja^r")
+        self.assertEqual(phonemize("lingua", lang="gl", tra=2).strip(), "li^Ngwa")
+
+    def test_pr4_diacritic_off_by_one_fix_is_present(self):
+        """cotovia-mirror PR #4: `cont++` in the guard of the diacritic loop.
+
+        The guard tests entry N while the body compares entry N+1, so entry 0
+        ("é") is never compared and the "\\0" terminator is compared instead.
+        pycotovia keeps "é" in the table.
+        """
+        self.assertEqual(phonemize("é", lang="gl", tra=2).strip(), "E^")
+        # The entries the C loop does reach must keep working.
+        self.assertEqual(phonemize("ó", lang="gl", tra=2).strip(), "O^")
+        self.assertEqual(phonemize("só", lang="gl", tra=2).strip(), "sO^")
+        # And a word that is not in the table must not open.
+        self.assertEqual(phonemize("café", lang="gl", tra=2).strip(), "kafe^")
+
+    def test_diacritic_fix_does_not_change_the_prosodic_mode(self):
+        """The PR #4 fix must cost nothing at tra=4.
+
+        The prosodic stage opens "é" to E^ on its own, so the mode the
+        Cotovia-alphabet voices were trained on is identical either way.
+        This is the reason the fix is safe to take. See docs/parity.md.
+        """
+        sentence = "el é o meu irmán"
+        self.assertEqual(phonemize(sentence, lang="gl", tra=4).split(),
+                         self._run_binary_t3(sentence))
 
     def _run_binary_sentence(self, sentence: str, mode: str) -> str:
         proc = subprocess.run(
@@ -303,6 +379,8 @@ class TestParity(unittest.TestCase):
         """pycotovia tra=2 must equal the binary's -t1 (phonemes + stress)."""
         failures = []
         for sentence in SENTENCES:
+            if sentence in DIVERGENT_SENTENCES:
+                continue  # adjudicated bug fix — see test_deliberate_divergences
             py = " ".join(phonemize(sentence, lang="gl", tra=2).split())
             binary = self._run_binary_sentence(sentence, "t1")
             if py != binary:
@@ -317,6 +395,8 @@ class TestParity(unittest.TestCase):
         """pycotovia tra=3 must equal the binary's -t2 (+ syllable separators)."""
         failures = []
         for sentence in SENTENCES:
+            if sentence in DIVERGENT_SENTENCES:
+                continue  # adjudicated bug fix — see test_deliberate_divergences
             py = " ".join(phonemize(sentence, lang="gl", tra=3).split())
             binary = self._run_binary_sentence(sentence, "t2")
             if py != binary:
