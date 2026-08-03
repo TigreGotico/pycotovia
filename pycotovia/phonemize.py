@@ -121,10 +121,14 @@ def _strip_t0(s: str, tra: int = 1) -> str:
 class Phonemizer:
     """G2P phonemizer for Galician and Spanish."""
 
-    def __init__(self, lang: str = "gl"):
+    def __init__(self, lang: str = "gl", keep_bugs: bool = False):
         if lang not in ("gl", "es"):
             raise ValueError(f"Unsupported language: {lang!r}. Use 'gl' or 'es'.")
         self.lang = lang
+        #: Reproduce the stock upstream binary, adjudicated defects included.
+        #: The default reproduces the fixed reference build, which is the
+        #: primary oracle. See docs/oracles.md for both builds.
+        self.keep_bugs = keep_bugs
         self.rules = GALEGO_RULES_SV if lang == "gl" else CASTELLANO_RULES_SV
 
     def phonemize(self, text: str, tra: int = 1, alphabet: str = NATIVE_ALPHABET) -> str:
@@ -243,7 +247,7 @@ class Phonemizer:
         w = CONTRACCIONS.get(w, w)
 
         s = syllabify(w)
-        s = assign_stress(s, self.lang)
+        s = assign_stress(s, self.lang, self.keep_bugs)
 
         xe_result = trata_excepcions_xe(w, s, self.lang)
         if xe_result is not None:
@@ -264,7 +268,13 @@ class Phonemizer:
         return s
 
 
-def phonemize(text: str, lang: str = "gl", tra: int = 1, alphabet: str = NATIVE_ALPHABET) -> str:
-    """Convenience function — phonemize text in one call."""
-    p = Phonemizer(lang)
+def phonemize(text: str, lang: str = "gl", tra: int = 1,
+              alphabet: str = NATIVE_ALPHABET, keep_bugs: bool = False) -> str:
+    """Convenience function — phonemize text in one call.
+
+    Set ``keep_bugs=True`` to reproduce the stock upstream Cotovia binary
+    byte for byte, adjudicated defects included. The default reproduces the
+    fixed reference build. See ``docs/oracles.md``.
+    """
+    p = Phonemizer(lang, keep_bugs=keep_bugs)
     return p.phonemize(text, tra=tra, alphabet=alphabet)
