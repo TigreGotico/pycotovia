@@ -18,7 +18,6 @@ from .engine import apply_rules
 from .rules_data import GALEGO_RULES_SV, CASTELLANO_RULES_SV
 from .alphabets import ALPHABETS, NATIVE_ALPHABET, to_alphabet
 
-
 #: Word-internal hyphen, kept by the tokenizer so :func:`_split_hyphenated`
 #: can decide whether it joins or separates two words.
 HYPHEN = '-'
@@ -199,33 +198,35 @@ class Phonemizer:
     def _preprocess_word(self, word: str) -> str:
         """Apply pre-rule processing to a single word.
 
-        Pipeline: lowercase → exceptions → syllabify → stress → timbre
+        Pipeline: lowercase → syllabify → stress → x/w exceptions.
+
+        The exceptions run last, on the syllabified and stressed form, because
+        that is the order ``Trat_fon::trat_fonetico()`` uses: it passes the
+        plain word for the list lookups and mutates ``pal_sil_e_acentuada``.
+        Running them earlier changes where the stress lands for words that end
+        in ``-x`` (``index`` → ``inde^ks``, not ``i^ndeks``).
         """
-        w = word
-
         # Lowercase — matches pasar_a_minusculas() in the C binary
-        w = to_minusculas(w)
+        w = to_minusculas(word)
 
-        # Exception preprocessing
-        xe_result = trata_excepcions_xe(w, self.lang)
-        if xe_result is not None:
-            w = xe_result
-        w_result = trata_excepcions_w(w)
-        if w_result is not None:
-            w = w_result
-
-        # Syllabify
         s = syllabify(w)
-
-        # Assign stress
         s = assign_stress(s, self.lang)
 
-        # NOTE: Timbre assignment (assign_timbre) is NOT applied here.
-        # The binary only uses it for voice-building (-lin mode), not for -t
-        # transcription. The pal_sil_e_acentuada fed to transcribe() does NOT
-        # carry open/closed e/o marks. See transcribe() line 741:
-        #   //atono_ou_tonico_aberto_ou_pechado_e_w_x(frase_sil_e_acentuada,item);
-        # That call is COMMENTED OUT in the transcribe path.
+        xe_result = trata_excepcions_xe(w, s, self.lang)
+        if xe_result is not None:
+            s = xe_result
+        w_result = trata_excepcions_w(w, s)
+        if w_result is not None:
+            s = w_result
+
+        # NOTE: vowel timbre (assign_timbre) is deliberately NOT applied here.
+        # It belongs to atono_ou_tonico_aberto_ou_pechado_e_w_x(), which the
+        # binary calls from its main pipeline (cotovia.cpp:2911) and which
+        # shows up only in `-t3` output.  pycotovia has no -t3-equivalent mode
+        # yet, so the stage is unported and timbre.py is currently unused.
+        # (An older comment here claimed the C call was commented out, citing
+        # transcripcion.cpp:741 — that copy is dead, but the cotovia.cpp one
+        # is live.  See docs/parity.md.)
 
         return s
 
