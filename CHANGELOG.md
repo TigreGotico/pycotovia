@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0a1](https://github.com/TigreGotico/pycotovia/tree/0.4.0a1) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.3.1a1...0.4.0a1)
+
+**Merged pull requests:**
+
+- feat: add tra=4, the prosodic mode matching Cotovía's -t3 [\#12](https://github.com/TigreGotico/pycotovia/pull/12) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.3.1a1](https://github.com/TigreGotico/pycotovia/tree/0.3.1a1) (2026-08-03)
 
 [Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.3.0a1...0.3.1a1)
