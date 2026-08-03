@@ -495,8 +495,8 @@ class TestPhoneizeDeeper(unittest.TestCase):
         result = phonemize("!!! ???", lang="gl")
         self.assertIsInstance(result, str)
 
-    def test_tra_4_raw(self):
-        result = phonemize("casa", lang="gl", tra=4)
+    def test_tra_5_raw(self):
+        result = phonemize("casa", lang="gl", tra=5)
         self.assertIn("#", result)
 
     def test_strip_t0_stress_mark(self):
@@ -617,9 +617,9 @@ class TestVersion(unittest.TestCase):
 class TestStripT0Extended(unittest.TestCase):
     """Tests for the %...% pause block stripping in _strip_t0."""
 
-    def test_tra4_preserves_hashes(self):
-        # tra=4 returns raw, including ## markers
-        result = phonemize("casa", lang="gl", tra=4)
+    def test_tra5_preserves_hashes(self):
+        # tra=5 returns raw, including ## markers
+        result = phonemize("casa", lang="gl", tra=5)
         self.assertIn("##", result)
 
     def test_percent_blocks_stripped(self):

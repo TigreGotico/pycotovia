@@ -40,7 +40,7 @@ class TestPhonemize(unittest.TestCase):
         self.assertEqual(phonemize("guerra", lang="gl", tra=1).strip(), "gerra")
         self.assertIn("^", phonemize("guerra", lang="gl", tra=2))
         self.assertIn("-", phonemize("guerra", lang="gl", tra=3))
-        self.assertIn("#", phonemize("guerra", lang="gl", tra=4))
+        self.assertIn("#", phonemize("guerra", lang="gl", tra=5))
 
     def test_reuse_phonemizer(self):
         p = Phonemizer(lang="gl")
