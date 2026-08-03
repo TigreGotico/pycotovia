@@ -1,5 +1,7 @@
 """Exception word lists — ported from trat_fon.cpp."""
 
+from .lookup import buscar_inicio
+
 
 class AlphabetError(ValueError):
     """Raised when an unsupported output alphabet is requested."""
@@ -54,11 +56,15 @@ W_PRONUNCIASE_U = [
 
 
 def _prefix_match(word: str, wordlist: list[str]) -> bool:
-    wl = word.lower()
-    for entry in wordlist:
-        if wl.startswith(entry):
-            return True
-    return False
+    """Prefix lookup, exactly as the binary does it.
+
+    The C calls ``comprobar_en_lista_de_inicio_de_palabras()``, a binary
+    search followed by a backward scan. Several of these lists are not fully
+    sorted, so some entries are unreachable and the binary never matches
+    them. A linear scan would match them and would transcribe real words
+    differently from the binary. See docs/parity.md.
+    """
+    return buscar_inicio(tuple(wordlist), word.lower()) >= 0
 
 
 def trata_excepcions_xe(word: str, target: str, lang: str = "gl") -> str | None:
@@ -100,11 +106,27 @@ def trata_excepcions_w(word: str, target: str) -> str | None:
     ``word`` drives the list lookups, ``target`` is the syllabified and
     stressed form that gets rewritten.
     """
-    idx = target.lower().find('w')
-    if idx < 0:
+    if 'w' not in target.lower():
         return None
-    if _prefix_match(word, W_PRONUNCIASE_U):
-        return target[:idx] + "u" + target[idx + 1:]
-    if _prefix_match(word, W_PRONUNCIASE_GU):
-        return target[:idx] + "gu" + target[idx + 1:]
-    return None
+
+    # The C loops until no `w` is left, and falls back to `b` for every word
+    # that is in neither list. Rewriting only the first `w`, or leaving the
+    # fallback to the rule engine, gives different output for `newton` and
+    # `wolfram`.
+    as_u = _prefix_match(word, W_PRONUNCIASE_U)
+    as_gu = _prefix_match(word, W_PRONUNCIASE_GU)
+    result = target
+    while True:
+        idx = result.find('w')
+        if idx < 0:
+            idx = result.find('W')
+        if idx < 0:
+            break
+        if as_u:
+            replacement = "u"
+        elif as_gu:
+            replacement = "gu"
+        else:
+            replacement = "b"
+        result = result[:idx] + replacement + result[idx + 1:]
+    return result
