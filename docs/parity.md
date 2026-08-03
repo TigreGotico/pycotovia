@@ -26,11 +26,12 @@ Two corpora, both in `tests/test_parity.py`:
 
 **Words (93).** Simple vowels and consonants; diphthongs and triphthongs; the `gu` + vowel family; words ending in `-s`, `-n` and vowels; words with orthographic accents; exception words; common function words.
 
-**Sentences (56).** Real Galician sentences, grouped by the behaviour they exercise:
+**Sentences (65).** Real Galician sentences, grouped by the behaviour they exercise:
 - Open/closed vowel opposition (`ó`, `nós`, `vén`, `só`, `bóla`, `cómpre`) and the closed counterparts that must not open (`é`, `és`, `avó`, `café`)
 - Hyphenated clitics: `-lo/-la/-los/-las` join to the verb, everything else splits
 - The `x` family: terminal `-x`, `próxi-`, and the `pronuncianse_con_xe` exceptions
 - Sentence separators resetting phrase-initial sandhi
+- `ñ` and `ç` surviving accent stripping
 - Function words, clitics and contractions in running text
 
 ## Results
@@ -45,7 +46,6 @@ These are real, reproduced against the binary, and not yet fixed. `tests/test_pa
 
 | Input | pycotovia | Binary | Cause |
 |-------|-----------|--------|-------|
-| `mañá` | `mana^` | `maJa^` | `ACENTO_A_BASE` maps `ñ` (0xF1) and `ç` (0xE7) alongside the accented vowels. A word carrying `ñ` *and* an orthographic accent loses its `ñ`. Affects common words (`mañá`, `compañía`). |
 | `doíalle` at `tra=3` | `Do-i^a-Ze` | `Do-i^-a-Ze` | Hiatus after a stressed `í` is not split. |
 | `ao`, `aos` | `a^-o`, `a^-os` | `O^`, `O^s` | The contraction is a lexical open `O` in the binary. |
 | `luxar` | `luksa^r` | `luSa^r` | `_prefix_match` scans the whole list; the C uses `comprobar_en_lista_de_inicio_de_palabras`, a binary search over a list that is not fully sorted, so some entries are unreachable. pycotovia matches entries the binary never reaches. |

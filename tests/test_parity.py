@@ -73,7 +73,7 @@ SENTENCES = [
     "deulles ós rapaces a merenda",
     "nós non sabemos nada diso",
     "vós tédelo dereito de falar",
-    "el vén tarde pola noite",
+    "el vén mañá pola tarde",
     "ti vés comigo ou quedas",
     "só quero saber a verdade",
     "a sé do bispado está pechada",
@@ -95,6 +95,17 @@ SENTENCES = [
     "a miña avó vive na aldea",
     "tomamos un café na praza",
 
+    # -- ñ and ç must survive accent stripping (ACENTO_A_BASE) --
+    "a compañía chegou onte pola mañá",
+    "a señá do pazo saudou os veciños",
+    "teñén moito que contar despois",
+    "o cañón do río impresiona a quen o ve",
+    "cómpre coñecer ben o camiño",
+    "espiñá o dedo coa silva",
+    "botou açúcar de máis no café",
+    "comeu unha maçá pola tarde",
+    "mañán imos á feira do gando",
+
     # -- hyphenated clitics: -lo/-la/-los/-las join, everything else splits --
     "quero amosa-lo camiño",
     "vou colle-la maleta agora",
@@ -110,7 +121,7 @@ SENTENCES = [
     "os próximos días van ser duros",
     "a proximidade do mar nótase",
     "colleu un taxi ata o porto",
-    "mandoulle un fax pola tarde",
+    "mandoulle un fax pola mañá",
     "o tórax molestoulle bastante",
     "atopamos un anaco de ónix",
     "necesito relax despois do traballo",
@@ -143,10 +154,6 @@ SENTENCES = [
 #: outside the scope of fix/stress-timbre-parity.  They are recorded here,
 #: not asserted, so the next pass has a starting point.  See docs/parity.md.
 OPEN_DIVERGENCE_SENTENCES = (
-    # ACENTO_A_BASE maps 0xF1/0xE7 (ñ/ç) alongside the accented vowels, so a
-    # word carrying ñ *and* an orthographic accent loses the ñ:
-    # "mañá" -> py "mana^", binary "maJa^".
-    "el vén mañá pola tarde",
     # Hiatus after a stressed í is not split: "doíalle" at tra=3 gives
     # py "Do-i^a-Ze" where the binary has "Do-i^-a-Ze".
     "o óso doíalle bastante",
