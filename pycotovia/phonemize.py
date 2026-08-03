@@ -19,6 +19,32 @@ from .rules_data import GALEGO_RULES_SV, CASTELLANO_RULES_SV
 from .alphabets import ALPHABETS, NATIVE_ALPHABET, to_alphabet
 
 
+#: Word-internal hyphen, kept by the tokenizer so :func:`_split_hyphenated`
+#: can decide whether it joins or separates two words.
+HYPHEN = '-'
+
+#: Allomorphs of the article that Cotovia attaches to the preceding verb form
+#: when they follow a hyphen: ``amosa-lo`` is the single word ``amosalo``.
+#: Any other suffix (``-lle``, ``-me``, ``-nos``, ``-estar``) is a word of its
+#: own.  Verified against the binary at ``-St1lgl``.
+ARTICLE_ALLOMORPHS = frozenset({"lo", "la", "los", "las"})
+
+
+def _split_hyphenated(token: str) -> list[str]:
+    """Resolve a hyphen-bearing token into one or more words.
+
+    Runs of hyphens act as a single separator, and leading/trailing hyphens
+    are dropped, matching the binary (``amosa--lo`` → ``amosalo``,
+    ``-lo`` → ``lo``, ``amosa-`` → ``amosa``).
+    """
+    parts = [p for p in token.split(HYPHEN) if p]
+    if not parts:
+        return []
+    if len(parts) == 2 and parts[1].lower() in ARTICLE_ALLOMORPHS:
+        return ["".join(parts)]
+    return parts
+
+
 def _strip_t0(s: str, tra: int = 1) -> str:
     """Strip #...# and %...% blocks, ^ and - (matching binary sacar_transcripcion).
 
@@ -120,18 +146,26 @@ class Phonemizer:
         return result
 
     def _tokenize(self, text: str) -> list[str]:
-        """Split text into words (whitespace-separated)."""
-        words = []
-        current = []
+        """Split text into words.
+
+        A hyphen inside a word is not a word boundary on its own.  Cotovia
+        joins ``verbo-lo`` into a single word when the part after the hyphen
+        is one of the article allomorphs ``lo/la/los/las`` (``amosa-lo`` →
+        ``amosalo``), and splits it into two words otherwise (``ben-estar`` →
+        ``ben`` + ``estar``).  Getting this wrong shifts every later word of
+        the sentence out of alignment.
+        """
+        words: list[str] = []
+        current: list[str] = []
         for ch in text.strip():
-            if letra(ch):
+            if letra(ch) or ch == HYPHEN:
                 current.append(ch)
             else:
                 if current:
-                    words.append("".join(current))
+                    words.extend(_split_hyphenated("".join(current)))
                     current = []
         if current:
-            words.append("".join(current))
+            words.extend(_split_hyphenated("".join(current)))
         return words
 
     def _preprocess_word(self, word: str) -> str:
