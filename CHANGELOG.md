@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0a1](https://github.com/TigreGotico/pycotovia/tree/0.5.0a1) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.4.0a2...0.5.0a1)
+
+**Merged pull requests:**
+
+- feat: dual oracles + keep\_bugs; port the binary's list lookup and the ao/aos contraction [\#15](https://github.com/TigreGotico/pycotovia/pull/15) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.4.0a2](https://github.com/TigreGotico/pycotovia/tree/0.4.0a2) (2026-08-03)
 
 [Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.4.0a1...0.4.0a2)
