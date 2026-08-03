@@ -1,92 +1,268 @@
-# Parity verification
+# Parity with the Cotovia binary
 
-We verify pycotovia against the Cotovia C binary. The binary is the oracle: we run the same input through both and compare the output character by character. We never write an expected phoneme string by hand.
+This document states what pycotovia reproduces, what it does not, and by how
+much. Every number comes from `tools/parity_harness.py`. There is no claim of
+"full parity" anywhere in this repository, because full parity does not exist
+today.
 
-## Test method
+Audit date: 2026-08-03. Corpus: 5000 Galician Wikipedia sentences
+(48024 word tokens), plus the 33 ProxectoNos test sentences.
 
-1. Build the Cotovia binary from source (`cotovia-mirror/src/cotovia/`).
-2. Run the binary and pycotovia at equivalent options.
-3. Compare character by character.
+## Scope: pycotovia is a G2P, not a synthesiser
 
-pycotovia's `tra` levels are offset by one from the binary's `-t` levels:
+Cotovia is a full text-to-speech system. pycotovia ports the part that turns
+text into a phoneme string, and stops there.
 
-| pycotovia | Cotovia binary | Output |
-|-----------|----------------|--------|
-| `tra=1` | `-t0` | Phonemes only |
-| `tra=2` | `-t1` | Phonemes + stress marks |
-| `tra=3` | `-t2` | Phonemes + stress + syllable separators |
-| `tra=4` | `-t3` | `-t2` plus tonicity and vowel timbre |
-| `tra=5` | — | Raw rule-engine output (no binary equivalent) |
+The boundary is a single line in `cotovia.cpp`. `procesado_linguistico()` and
+the first half of `generacion_prosodia()` produce the phonetic sentence.
+`prosodia.xerar_prosodia()` at `cotovia.cpp:2930` starts the acoustic side:
+F0 contours, durations, energy, unit selection and waveform assembly. Nothing
+from that line onward is in scope, and nothing from it can change the phoneme
+string.
 
-Comparing across this offset is a common mistake. It makes pycotovia look badly wrong when it is not.
+## The oracle
 
-## Test corpus
+The oracle is the binary built from an **unmodified** `cotovia-mirror`
+checkout. This matters. Earlier parity work in this repository was measured
+against a local checkout that had been patched in place with the fix from
+`cotovia-mirror` PR #2, and the resulting numbers and conclusions were wrong:
+an earlier version of this file said "the binary emits `buj`" and "there are
+no deliberate divergences". The upstream binary emits `bwi^`, and there are
+two deliberate divergences. Build the oracle from a clean checkout.
 
-Two corpora, both in `tests/test_parity.py`:
+pycotovia's `tra` levels equal the binary's internal `opciones.tra`, which is
+one more than the `-t` flag on the command line:
 
-**Words (93).** Simple vowels and consonants; diphthongs and triphthongs; the `gu` + vowel family; words ending in `-s`, `-n` and vowels; words with orthographic accents; exception words; common function words.
+| pycotovia | Binary flag | Output |
+|-----------|-------------|--------|
+| `tra=1` | `-t0` | Phonemes |
+| `tra=2` | `-t1` | + stress marks |
+| `tra=3` | `-t2` | + syllable separators |
+| `tra=4` | `-t3` | + tonicity and open-vowel timbre (binary also prints pause markers) |
+| `tra=5` | — | Raw rule-engine output, for debugging |
 
-**Sentences (65)** at the phoneme levels, plus **18** for the prosodic mode. Real Galician sentences, grouped by the behaviour they exercise:
-- Open/closed vowel opposition (`ó`, `nós`, `vén`, `só`, `bóla`, `cómpre`) and the closed counterparts that must not open (`é`, `és`, `avó`, `café`)
-- Hyphenated clitics: `-lo/-la/-los/-las` join to the verb, everything else splits
-- The `x` family: terminal `-x`, `próxi-`, and the `pronuncianse_con_xe` exceptions
-- Sentence separators resetting phrase-initial sandhi
-- `ñ` and `ç` surviving accent stripping
-- Function words, clitics and contractions in running text
-- For `tra=4`: article/preposition/clitic chains, contractions, open-vowel
-  minimal pairs, numerals, and mixed running text
+Comparing across the offset is a common mistake and makes pycotovia look far
+worse than it is.
 
-## Results
+## Measured parity
 
-**All 173 tests pass.** There are no deliberate divergences.
+Sentence agreement is exact string equality. Word agreement is token by token
+over sentences whose token counts match; a token-count mismatch counts every
+token of that sentence as wrong. At `tra=4` the binary's `#%pausa N%#` and
+`%prop N%` markers are stripped from both sides before comparison, because
+pycotovia does not emit them.
 
-An earlier version of this document claimed three deliberate mismatches (`bui`, `fui`, `cuido`), on the grounds that a `*p-2` vs `*(p-2)` precedence bug in the C `aguda()`/`grave()` made the binary emit `bwi`/`fwi`/`kwiDo`. **The binary does not do that.** It emits `buj`, `fuj` and `kujDo`, which is what pycotovia emits. The claim was never true of the shipped binary, and `tests/test_parity.py::test_ui_diphthong_matches_binary` now pins both sides.
+**5000 Galician Wikipedia sentences, against the upstream binary:**
 
-## Open divergences
+| Mode | Words | Sentences |
+|------|-------|-----------|
+| `tra=1` / `-t0` | 95.03% (45639/48024) | 76.80% (3840/5000) |
+| `tra=2` / `-t1` | 94.80% (45525/48024) | 75.38% (3769/5000) |
+| `tra=3` / `-t2` | 94.45% (45357/48024) | 72.88% (3644/5000) |
+| `tra=4` / `-t3` | 84.55% (40594/48013) | 56.78% (2839/5000) |
 
-These are real, reproduced against the binary, and not yet fixed. `tests/test_parity.py` records them in `KNOWN_DIVERGENCES` and `OPEN_DIVERGENCE_SENTENCES` so the suite fails if either side drifts.
+**33 ProxectoNos test sentences, against the upstream binary:**
 
-| Input | pycotovia | Binary | Cause |
-|-------|-----------|--------|-------|
-| `doíalle` at `tra=3` | `Do-i^a-Ze` | `Do-i^-a-Ze` | Hiatus after a stressed `í` is not split. |
-| `ao`, `aos` | `a^-o`, `a^-os` | `O^`, `O^s` | The contraction is a lexical open `O` in the binary. |
-| `luxar` | `luksa^r` | `luSa^r` | `_prefix_match` scans the whole list; the C uses `comprobar_en_lista_de_inicio_de_palabras`, a binary search over a list that is not fully sorted, so some entries are unreachable. pycotovia matches entries the binary never reaches. |
-| `twist`, `newton`, `wolfram` | `twi^st`, `ne^wtoN`, `Bolfra^m` | `tewi^st`, `ne^BtoN`, `bolfra^m` | `w` exception handling. The C rewrites every `w` in the word and falls back to `b`; pycotovia rewrites only the first and leaves the fallback to the rule engine. |
+| Mode | Words | Sentences |
+|------|-------|-----------|
+| `tra=1` / `-t0` | 99.45% (359/361) | 93.94% (31/33) |
+| `tra=2` / `-t1` | 99.45% (359/361) | 93.94% (31/33) |
+| `tra=3` / `-t2` | 98.89% (357/361) | 87.88% (29/33) |
+| `tra=4` / `-t3` | 93.35% (337/361) | 63.64% (21/33) |
 
-## The prosodic mode (`tra=4`)
+The ProxectoNos figures are much higher than the Wikipedia figures because
+those 33 sentences are short, clean and free of abbreviations. Wikipedia text
+is the honest measure.
 
-`Trat_fon::atono_ou_tonico_aberto_ou_pechado_e_w_x()` drops the stress mark from atonic function words and assigns open/closed vowel timbre to nouns. The binary calls it from its main pipeline (`cotovia.cpp:2911`), and its effect is visible only in `-t3` output. `tra=4` ports that stage.
+The curated corpora in `tests/test_parity.py` pass at 100%, but they were
+written against known behaviour and cannot be read as a parity measurement.
+They are regression guards, not evidence.
 
-This matters downstream: the ProxectoNos Cotovia-alphabet gold transcriptions are `-t3` output. Scoring `tra=2` against that gold looks like a 47% stress error, but the binary at `-t1` scores the same way — the gap was the missing mode, not a rule defect.
+## Why `tra=1..3` is easier than `tra=4`
 
-Note that a copy of the same call at `transcripcion.cpp:741` *is* commented out. Reading only that copy suggests the stage is dead. It is not.
+At `-t0`, `-t1` and `-t2` the binary runs a short pipeline and returns before
+the hard part. `procesado_linguistico()` calls, in order: `tokenizar`,
+`clasificar_palabras`, `preprocesa`, `silabificar_e_acentuar`,
+`transcripcion.transcribe` and `vuelca_transcripcion`, and then returns when
+`tra < 4`. The morphological analyser, the Viterbi category tagger, the
+syntagma module, the pause model and `trat_fon` never run.
 
-### What `tra=4` does not do
+At `-t3` all of them run. That is the whole difference between the two groups
+of numbers above.
 
-**Pause and phrase-group markers.** The binary also prints `#%pausa N%#` and `%prop N%` at `-t3`. Those come from the pause and syntagma modules, which pycotovia does not port. Strip them before comparing.
+## Feature matrix
 
-**Verb timbre.** `manexo_do_timbre_verbal()` resolves the timbre of a verb form from the conjugation tables in `verbos.txt`. pycotovia carries no verb lexicon, so verb forms fall through to the noun rules and sometimes come out open where the binary has them closed (`sabemos`, `volveron`, `chova`).
+Status values:
 
-**Morphosyntactic disambiguation.** Cotovia picks a word's category with a Viterbi tagger over its dictionaries. pycotovia takes the first category the word is listed under in `palabrasFuncion.txt`. Words whose tonicity depends on context (`que`, `nin`, `onde`, `me`) can therefore come out wrong.
+* **PORTED-VERIFIED** — ported, and the corpus numbers above cover it.
+* **PORTED-PARTIAL** — ported, with named gaps.
+* **NOT-PORTED** — absent.
+* **DIVERGENCE** — deliberately different from the binary; see below.
+* **OUT-OF-SCOPE** — after the G2P boundary.
 
-**Accented-vowel notation.** The binary writes the open stressed vowels as `E^` and `O^`, not `É` and `Ó` — verified at byte level. The accented form in the ProxectoNos gold is a transform their dataset pipeline applied, along with re-inserting punctuation from the source text. Neither is Cotovia output, so neither is done here.
+| C module / stage | Runs at | pycotovia | Status |
+|---|---|---|---|
+| `sep_pal.cpp` — `tokenizar` | all | `Phonemizer._tokenize` | PORTED-PARTIAL: hyphen and clitic handling ported; the flex/bison input markup grammar (`lex.yy.cpp`, `variantes.tab.cpp`) is not |
+| `clas_pal.cpp` — `clasificar_palabras` | all | implicit | PORTED-PARTIAL: punctuation and letter classes only; no numeral, date, Roman-numeral or acronym classes |
+| `preproc.cpp` — `preprocesa` | all | — | NOT-PORTED |
+| `xen_nun.cpp` — numbers to words | all, through `preprocesa` | — | NOT-PORTED |
+| `gbm_abreviaturas.cpp` — abbreviation expansion | all, through `preprocesa` | — | NOT-PORTED |
+| `leer_frase.cpp` — sentence reading and splitting | all | `_split_sentences` | PORTED-PARTIAL: splits on `.:;` only |
+| `sil_acen.cpp` — `silabificar` | all | `syllabify.py` | PORTED-PARTIAL: vowel-sequence handling differs |
+| `sil_acen.cpp` — `acentuar_prosodicamente`, `aguda`, `grave` | all | `stress.py` | PORTED-VERIFIED, with one DIVERGENCE (PR #2) |
+| `sil_acen.cpp` — `diacritico_dif_aberta_pechada` | all | `stress.diacritico_dif_aberta_pechada` | DIVERGENCE (PR #4) |
+| `trat_fon.cpp` — `tratamento_das_excepcions_da_xe` | all | `exceptions.trata_excepcions_xe` | PORTED-PARTIAL: the list lookup is a full scan, not the binary's binary search |
+| `trat_fon.cpp` — `tratamento_das_excepcions_da_w` | all | `exceptions.trata_excepcions_w` | PORTED-PARTIAL: rewrites the first `w` only; the C rewrites all of them and falls back to `b` |
+| `transcripcion.cpp` — rule tables and `transcribe` | all | `engine.py`, `rules_data.py` | PORTED-VERIFIED |
+| `transcripcion.cpp` — `sacar_transcripcion` output filter | all | `_strip_t0` | PORTED-VERIFIED |
+| `transcripcion.cpp` — `transformar_a_alofonos` | `tra=4` | `engine.py`, same tables | PORTED-PARTIAL: the comment-preserving and intonation-break wrapper is not ported |
+| `alofonos.cpp` — `crea_cadena_rupturas`, comment handling | `tra=4` | — | NOT-PORTED |
+| `morfolo.cpp` — `analise_morfoloxica` | `tra=4` | — | NOT-PORTED |
+| `analisis_morfosintactico.cpp`, `Viterbi_categorias.cpp`, `modelo_lenguaje.cpp` | `tra=4` | first-entry lookup in `function_words.py` | NOT-PORTED for the tagger; the lexicon is ported |
+| `verbos.cpp`, `timbre.cpp` — `manexo_do_timbre_verbal` and `verbos.txt` | `tra=4` | — | NOT-PORTED |
+| `trat_fon.cpp` — `atono_ou_tonico_aberto_ou_pechado_e_w_x` | `tra=4` | `prosody.py`, `tonicity.py`, `timbre.py` | PORTED-PARTIAL: noun timbre and function-word tonicity ported; verb timbre is not |
+| `trat_fon.cpp` — `tonica` | `tra=4` | `tonicity.py` | PORTED-PARTIAL: needs the missing tagger for its category input |
+| `sintagma.cpp` — `analise_sintagmatico` | `tra=4` | — | NOT-PORTED |
+| `pausas.cpp` — `crea_frase_pausas`, `poner_pausas` | `tra=4` | — | NOT-PORTED |
+| `trat_fon.cpp` — `insertar_pausa_entre_palabras`, `insertar_tipo_de_proposicion`, `asignar_pausa_entre_frases` | `tra=4` | — | NOT-PORTED |
+| `rupturas_entonativas.cpp`, `minor_phrasing.cpp`, `modulo_minor_phrasing.cpp`, `viterbi_mP.cpp` | `tra=4` | — | NOT-PORTED |
+| `alternativas.cpp` — alternative transcriptions (`-A`) | `-A` | — | NOT-PORTED |
+| `cotovia2eagles.cpp`, `info_estructuras.cpp` — linguistic analysis output (`-L`) | `-L` | — | OUT-OF-SCOPE |
+| `prosodia.cpp`, `modelo_duracion.cpp`, `frecuencia.cpp`, `energia.cpp`, `red_neuronal.cpp`, `util_neuronal.cpp`, `grupos_acentuales.cpp`, `Viterbi_acentual.cpp` | after `xerar_prosodia` | — | OUT-OF-SCOPE |
+| `seleccion_unidades.cpp`, `descriptor.cpp`, `crea_descriptores.cpp`, `distancia_espectral.cpp`, `procesado_senhal.cpp`, `audio.cpp`, `locutor.cpp`, `cache.cpp`, `indices.cpp`, `matriz.cpp`, `estadistica.cpp` | synthesis | — | OUT-OF-SCOPE |
+| `letras.cpp`, `utilidades.cpp`, `perfhash.cpp`, `path_list.cpp`, `gestor_busquedas_memoria.cpp`, `configuracion.cpp`, `options.cpp`, `interfaz_ficheros.cpp` | support | `charset.py`, `lookup.py` | PORTED-PARTIAL, as needed |
 
-### Measured parity at `-t3`
+## Deliberate divergences
 
-On the 30-sentence ProxectoNos set, against the binary with markers stripped:
+The binary is the oracle, except where an upstream defect is uncontroversial.
+Those are fixed here and documented by a reference-only pull request against
+`TigreGotico/cotovia-mirror`, which is never merged.
 
-- **96.4%** of words identical (297/308)
-- **20/30** sentences identical end to end
+### 1. Operator precedence in `aguda()` and `grave()`
 
-Every remaining difference traces to one of the three unported pieces above.
+`sil_acen.cpp:434` and `sil_acen.cpp:453`:
 
-## Running the parity test
+```c
+if (!((*(p-1)=='u') && p>palabra+1 && ( (*p-2)=='q' || (*p-2)=='g' ) ))
+```
+
+`*p-2` is `(*p)-2`, not `*(p-2)`. When `*p` is `'i'` (0x69), `(*p)-2` is 0x67,
+which is `'g'`. The guard is therefore always true for every `i`, the stress
+never shifts back, and rising `ui` diphthongs come out wrong. The comparison
+is syntactically valid and semantically meaningless: it compares the result of
+character arithmetic against a letter. The same line reads `*(p-1)` correctly.
+
+* Upstream: `bui` → `bwi^`, `fui` → `fwi^`, `cuido` → `kwi^Do`
+* pycotovia: `bu^j`, `fu^j`, `ku^jDo`
+* Blast radius: 19 of 48024 words (0.04%), 17 of 5000 sentences
+* Reference PR: [cotovia-mirror #2](https://github.com/TigreGotico/cotovia-mirror/pull/2)
+
+### 2. Off-by-one in `diacritico_dif_aberta_pechada()`
+
+`sil_acen.cpp:535`:
+
+```c
+cont=0;
+while (*diacriticos_oposicion_aberta_pechada[cont++]!=0 ){
+   if (strcmp(diacriticos_oposicion_aberta_pechada[cont],pal_entrada)==0){
+```
+
+`cont++` is in the loop guard, so the guard tests entry N and the body
+compares entry N+1. Entry 0 is `"é"` and is never compared. The `"\0"`
+terminator is compared instead, and can never match. The list is a table of
+words whose graphic accent marks an open/closed opposition rather than stress.
+`"é"`, the third person of *ser*, is the paradigm case and the reason the
+table exists. Losing exactly the first element while gaining a comparison
+against the terminator is the signature of the `cont++` placement, not a
+design.
+
+Verified against the binary: `"ó"` (entry 1) and `"só"` (entry 20) both match;
+`"é"` (entry 0) does not.
+
+* Upstream at `-t0..-t2`: `é` → `e^`, closed
+* pycotovia at `tra=1..3`: `é` → `E^`, open
+* Reference PR: [cotovia-mirror #4](https://github.com/TigreGotico/cotovia-mirror/pull/4)
+
+**The blast radius is large, so read this before you rely on `tra=1..3`.** The
+word `é` occurs 508 times in the 5000-sentence corpus. Taking the fix costs
+1.04% of words and 9.2% of sentences at `tra=1..3` when measured against the
+upstream binary:
+
+| Mode | Words, with the fix | Words, replicating the bug |
+|------|---------------------|----------------------------|
+| `tra=1` | 95.03% | 96.07% |
+| `tra=2` | 94.80% | 95.84% |
+| `tra=3` | 94.45% | 95.49% |
+| `tra=4` | 84.55% | 84.55% |
+
+`tra=4` does not change. At `-t3` the prosodic stage opens `é` to `E^` anyway,
+so the mode that the Cotovia-alphabet voices were trained on gives the same
+string either way. That is why the fix is taken: it costs nothing downstream
+and it removes a defect from the phoneme-only modes.
+
+If you need bug-compatible `tra=1..3` output, remove `"é"` from
+`DIACRITICOS_OPOSICION` in `pycotovia/stress.py`.
+
+## Replicated quirks, not fixed
+
+These are arguable, so the binary wins and pycotovia must match it.
+
+**Binary search over a partly unsorted list.**
+`comprobar_en_lista_de_inicio_de_palabras()` in `trat_fon.cpp:1082` is a
+documented, deliberate design: a binary search, then a backward linear scan.
+Its precondition is a sorted list. Three of the 118 entries of `x_pasa_a_ks`
+break the byte order (`laxi`/`laxa`, `léxic`/`lux`, `máxim`/`mitilotox`), and
+one of the two entries of `w_pronunciase_u` does (`twist`/`newto`). Entries
+after a break can become unreachable. The defect is in the data, not in the
+algorithm, and whether the unreachable entries were meant to apply cannot be
+known from the source. pycotovia uses a full scan, so it reaches entries that
+the binary never does. That is an accidental divergence and a gap to close,
+not a fix to keep:
+
+| Input | pycotovia | Upstream |
+|-------|-----------|----------|
+| `luxar` | `luksa^r` | `luSa^r` |
+| `newton` | `ne^wtoN` | `ne^BtoN` |
+| `wolfram` | `Bolfra^m` | `bolfra^m` |
+| `twist` | `twi^st` | `tewi^st` |
+
+## Where the remaining gap is
+
+Every differing token at `tra=4` over the 5000-sentence corpus, grouped by
+cause:
+
+| Class | Count | Cause |
+|-------|-------|-------|
+| Letter case on `d`, `b`, `g` | 420 | Pause markers. The binary's `#%pausa%#` puts the next word in phrase-initial position, so the stop stays occlusive. pycotovia has no pause model, so the rule engine makes it fricative. |
+| Tonicity (`^`) | 603 | The Viterbi category tagger. `sobre`, `onde`, `segundo`, `contra`, `baixo`, `un`, `e` and `i` change tonicity with their category. |
+| Letter case on `e`, `o` | 477 | Vowel timbre, mostly verb forms: `foron`, `temas`, `lemos`, `teñen`. `manexo_do_timbre_verbal()` and `verbos.txt` are not ported. |
+| Segmental | 812 | Mostly the `ao`/`aos` contraction (209). The rest is syllabification of vowel sequences (`maior`, `muíños`, `incluíndo`, `saíu`) and the exception-list lookup. |
+| Token count | 448 sentences | Text normalisation: abbreviations (`vol.` → `volume`, `páx.` → `páxina`, `r/` → `rúa`), acronyms spelled letter by letter (`NBA` → `ene be a`), and numerals. |
+
+Pause markers therefore change the phoneme string. They are not cosmetic.
+
+## Reproducing these numbers
+
+```bash
+# Oracle: a clean checkout, with no local patches.
+git clone https://github.com/TigreGotico/cotovia-mirror
+make -C cotovia-mirror/src/cotovia
+
+python3 tools/parity_harness.py corpus.txt \
+    --binary cotovia-mirror/bin/cotovia \
+    --json report.json
+```
+
+The corpus is plain text, one sentence per line, with no sentence-final
+punctuation. The harness adds it. Give the binary one sentence per process:
+piping many lines in at once makes it merge some of them.
+
+The in-repo regression suite runs separately and needs the binary at
+`../cotovia-mirror/bin/cotovia`:
 
 ```bash
 python3 -m pytest tests/test_parity.py
 ```
-
-This requires the Cotovia binary at `../cotovia-mirror/bin/cotovia`. If the binary is missing, the test skips.
 
 ---
 [← Limitations](limitations.md) · [Home](../README.md) · [API →](api.md)

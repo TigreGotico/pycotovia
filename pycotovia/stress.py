@@ -16,14 +16,27 @@ SEPARADOR_SILABAS = '-'
 # the open phonemes E/O.  The entries are matched against the *syllabified*
 # word, which is why some of them carry syllable separators.
 #
-# NOTE: the C loop is `while (*list[cont++] != 0) if (strcmp(list[cont], ...))`
-# — it increments the index before the body reads it, so index 0 ("é") is
-# never compared and "é" comes out closed.  We replicate that off-by-one:
-# the ProxectoNos Cotovia-alphabet voices were trained on the binary's real
-# output, so diverging here would desynchronise every downstream model.
-# The excluded entry is kept below, commented, to document the divergence.
+# DELIBERATE DIVERGENCE — adjudicated upstream bug.
+#
+# The C loop is:
+#
+#     cont = 0;
+#     while (*diacriticos_oposicion_aberta_pechada[cont++] != 0)
+#        if (strcmp(diacriticos_oposicion_aberta_pechada[cont], pal_entrada) == 0)
+#
+# `cont++` is in the guard, so the guard tests entry N while the body compares
+# entry N+1.  Entry 0 ("é") is therefore never compared, and the "\0"
+# terminator is compared instead.  The binary emits closed `e^` for "é" at
+# -t0..-t2 as a result.
+#
+# pycotovia keeps "é" in the list, which is what the table plainly intends.
+# Documented in cotovia-mirror PR #4 (reference only — not to merge).
+#
+# The blast radius is confined to -t0..-t2: at -t3 the prosodic stage opens
+# "é" to `E^` anyway, so the mode the Cotovia-alphabet voices were trained on
+# is unaffected.  See docs/parity.md.
 DIACRITICOS_OPOSICION = (
-    # "é",  # never reached by the C loop — see note above
+    "é",
     "ó", "ós", "có", "cós", "nós", "vós", "vén", "vés",
     "pré-sa", "bó-la", "bó-las", "ó-so", "cóm-pre", "pó-la",
     "tén", "té", "dó", "sé", "nó", "só",
@@ -161,10 +174,15 @@ def _grave(s: str) -> int | None:
         return None
 
     # Apply i/u exception logic (mirroring C's grave())
-    # NOTE: The C source has a precedence bug: `(*p-2)=='g'` is parsed as
-    # `(*p)-2=='g'`, so for *p=='i' the guard is always true.  We keep the
-    # correct logic here (check the character two positions back).  This means
-    # words like "bui" will differ from the binary: py → buj, bin → bwi.
+    #
+    # DELIBERATE DIVERGENCE — adjudicated upstream bug.  The C source has a
+    # precedence bug: `(*p-2)=='g'` is parsed as `((*p)-2)=='g'`, so for
+    # *p=='i' (0x69) the guard `(*p-2)=='g'` (0x67) is always true.  We keep
+    # the correct logic here (check the character two positions back).
+    # Documented in cotovia-mirror PR #2 (reference only — not to merge).
+    # The upstream binary emits `bwi^`/`fwi^`/`kwi^Do`; pycotovia emits
+    # `bu^j`/`fu^j`/`ku^jDo`.  Measured blast radius: 19 of 48024 words
+    # (0.04%) on the 5000-sentence Galician Wikipedia corpus.
     b = ord(s[pos])
     if b in (0x69, 0x75, 0x49, 0x55, 0xFC, 0xDC):
         if pos > 0 and vocal(s[pos - 1]):
@@ -189,8 +207,9 @@ def _aguda(s: str) -> int | None:
     if pos < 0:
         return None
 
-    # NOTE: Same as _grave() — the C source has a precedence bug in
-    # `(*p-2)=='g'`.  We keep the correct logic (check s[pos-2]).
+    # Same adjudicated divergence as _grave(): the C source has a precedence
+    # bug in `(*p-2)=='g'`.  We keep the correct logic (check s[pos-2]).
+    # See cotovia-mirror PR #2.
     b = ord(s[pos])
     if b in (0x69, 0x75, 0x49, 0x55, 0xFC, 0xDC):
         if pos > 0 and vocal(s[pos - 1]):

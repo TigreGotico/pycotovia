@@ -10,7 +10,7 @@ Pure-Python G2P (grapheme-to-phoneme) phonemizer for **Galician** and **Spanish*
 - **Two languages**: Galician (`gl`) and Spanish (`es`) with language-specific exception lists and rewrite rules.
 - **One tiny dependency**: pure Python, no C extensions, no heavy ML models — [scriptconv](https://github.com/TigreGotico/scriptconv) is the only requirement.
 - **Fast enough**: single-word latency is well under 1 ms on modern hardware.
-- **Parity-tested**: verified against the original Cotovia C binary for Galician (see [docs/parity.md](docs/parity.md)).
+- **Measured against the original**: every mode is scored against the Cotovia C binary on a 5000-sentence Galician corpus. The numbers, the gaps and the two deliberate bug fixes are in [docs/parity.md](docs/parity.md).
 - **Multi-alphabet output**: native Cotovía notation, IPA, X-SAMPA, ARPABET, Lexique, Kirshenbaum, or RFE, picked with one argument.
 
 ## Installation
@@ -89,10 +89,13 @@ cat words.txt | pycotovia -l gl > phonemes.txt
 | Pause and phrase-group markers | Not emitted | `#%pausa%#`, `%prop%` at `-t3` |
 | Verb timbre | Falls through to the noun rules | Resolved from the conjugation tables |
 | Word category | First entry in `palabrasFuncion.txt` | Viterbi tagger over the dictionaries |
+| Text normalisation | Not ported | Numbers, dates and abbreviations expanded |
 
-At `-t3` pycotovia reproduces 96.4% of the binary's words on the ProxectoNos
-test set. See [docs/parity.md](docs/parity.md) for the full results and the
-open divergences.
+On 5000 Galician Wikipedia sentences, pycotovia reproduces 95.0% of the
+binary's words at `tra=1` and 84.6% at `tra=4`. It is not a drop-in
+replacement for the binary. [docs/parity.md](docs/parity.md) gives the number
+for every mode, a module-by-module feature matrix, and the cause of each
+remaining gap.
 
 ## Documentation
 
