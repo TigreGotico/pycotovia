@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1a1](https://github.com/TigreGotico/pycotovia/tree/0.3.1a1) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.3.0a1...0.3.1a1)
+
+**Merged pull requests:**
+
+- fix: four G2P parity divergences against the Cotovia binary [\#10](https://github.com/TigreGotico/pycotovia/pull/10) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.3.0a1](https://github.com/TigreGotico/pycotovia/tree/0.3.0a1) (2026-08-02)
 
 [Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.1.1a2...0.3.0a1)
