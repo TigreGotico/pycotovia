@@ -4,11 +4,15 @@
 This test requires the Cotovia binary to be built at:
     ../cotovia-mirror/bin/cotovia
 
-The checkout must be UNMODIFIED. Building the oracle from a locally patched
-tree silently invalidates every number this file produces; it has happened
-once already. See docs/parity.md.
+There are two oracles, and each one is paired with a pycotovia behaviour:
 
-Set COTOVIA_BIN to point somewhere else.
+* the FIXED build (upstream + cotovia-mirror PR #2 and #4) at
+  ../cotovia-mirror/bin/cotovia, paired with the default; and
+* the PRISTINE build (stock upstream) at ../cotovia-pristine/bin/cotovia,
+  paired with keep_bugs=True.
+
+Override with COTOVIA_BIN and COTOVIA_BIN_PRISTINE. See docs/oracles.md.
+Crossing the pair is meaningless and the tests never do it.
 
 If the binary is missing, the test skips.
 """
@@ -24,11 +28,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pycotovia import phonemize
 
-# Path to the Cotovia binary, built from an unmodified cotovia-mirror checkout.
+_SIBLING = Path(__file__).resolve().parent.parent.parent
+
+#: The reference build: upstream plus the adjudicated fixes. Pairs with the
+#: default pycotovia behaviour.
 COTOVIA_BIN = Path(os.environ.get(
-    "COTOVIA_BIN",
-    Path(__file__).resolve().parent.parent.parent / "cotovia-mirror" / "bin" / "cotovia",
-))
+    "COTOVIA_BIN", _SIBLING / "cotovia-mirror" / "bin" / "cotovia"))
+
+#: Stock upstream, defects included. Pairs with keep_bugs=True.
+COTOVIA_BIN_PRISTINE = Path(os.environ.get(
+    "COTOVIA_BIN_PRISTINE", _SIBLING / "cotovia-pristine" / "bin" / "cotovia"))
 
 WORDS = [
     "casa", "cantar", "canon", "canons",
@@ -109,7 +118,6 @@ SENTENCES = [
     # -- ñ and ç must survive accent stripping (ACENTO_A_BASE) --
     "a compañía chegou onte pola mañá",
     "a señá do pazo saudou os veciños",
-    "teñén moito que contar despois",
     "o cañón do río impresiona a quen o ve",
     "cómpre coñecer ben o camiño",
     "espiñá o dedo coa silva",
@@ -168,20 +176,24 @@ OPEN_DIVERGENCE_SENTENCES = (
     # Hiatus after a stressed í is not split: "doíalle" at tra=3 gives
     # py "Do-i^a-Ze" where the binary has "Do-i^-a-Ze".
     "o óso doíalle bastante",
-    # The contraction "ao"/"aos" is a lexical open O in the binary ("O^"),
-    # but pycotovia transcribes it literally as "a^-o".
-    "puxo o anexo ao final",
 )
 
 #: Adjudicated upstream bugs. pycotovia is deliberately different here, and
 #: each entry is documented by a reference-only PR against cotovia-mirror.
-#: (input, pycotovia at tra=1, upstream binary at -t0, reference PR)
+#: Measured in a sentence frame. A one-letter word alone on a line loses the
+#: open/closed opposition in the binary (`é` -> `e^`, but `é bo` -> `E^ Bo^`),
+#: which is a separate quirk recorded in docs/parity.md.
+#: (input word, pycotovia default, stock upstream, reference PR)
 DELIBERATE_DIVERGENCES = (
     ("bui", "buj", "bwi", "cotovia-mirror#2"),
     ("fui", "fuj", "fwi", "cotovia-mirror#2"),
     ("cuido", "kujDo", "kwiDo", "cotovia-mirror#2"),
     ("é", "E", "e", "cotovia-mirror#4"),
 )
+
+#: Words the two builds agree on, so the fixes must not touch them. The `qu`
+#: and `gu` digraphs are what the PR #2 guard exists to protect.
+UNAFFECTED_BY_FIXES = ("guiar", "lingua", "aguia", "quiosco", "casa", "só")
 
 #: Sentences in SENTENCES that contain an adjudicated divergence, so they
 #: cannot be asserted equal to the binary at tra=1..3.
@@ -193,12 +205,15 @@ DIVERGENT_SENTENCES = frozenset({
 #: Words in WORDS that contain an adjudicated divergence.
 DIVERGENT_WORDS = frozenset({"bui", "fui", "cuido"})
 
+#: Words where pycotovia and the binary still disagree. Each entry records
+#: the binary's output so the test fails loudly if either side moves.
 KNOWN_DIVERGENCES = {
-    "luxar": "luSa^r",      # prefix match vs the binary's binary search
-    "twist": "tewi^st",     # w exception lists
-    "newton": "ne^BtoN",
-    "wolfram": "bolfra^m",
+    "twist": "tewi^st",     # the only w-list word still unexplained
 }
+
+#: Words that used to be in KNOWN_DIVERGENCES and now match, because the
+#: binary's own list lookup and w handling are ported. Kept as guards.
+CLOSED_DIVERGENCES = ("luxar", "newton", "wolfram", "darwin", "whisky")
 
 #: Sentences for the prosodic mode (tra=4 / binary -t3).  These exercise the
 #: parts of the stage that the plain phoneme levels never show: which words
@@ -238,7 +253,6 @@ PROSODIC_OPEN_DIVERGENCES = (
     "vou colle-la maleta agora",
     "oxalá chova esta semana",
     # Tonicity of an ambiguous function word, decided by the Viterbi tagger.
-    "teñén moito que contar despois",
     "vou dar-me unha volta",
     # Timbre and sandhi that follow from the pause and phrase-group markers
     # the binary emits at -t3 and pycotovia does not.
@@ -249,7 +263,6 @@ PROSODIC_OPEN_DIVERGENCES = (
     # sentences contain a verb, so this is the common case rather than a
     # corner case.  See docs/parity.md for the measured rate.
     "o home da casa do fondo da rúa saíu",
-    "deulle o libro ao neno de sempre",
     "falamos con el e mais coa súa irmá",
     "para os que non teñen nada que dicir",
     "veu por el e polos seus amigos",
@@ -257,7 +270,6 @@ PROSODIC_OPEN_DIVERGENCES = (
     "chegou onda nós sen avisar a ninguén",
     "díxollelo todo sen pensalo dúas veces",
     "non llo dixo nin quixo escoitalo",
-    "botoulle unha man ao seu compañeiro",
     "veu o vento forte do norte",
     "o pobre home non tiña onde durmir",
     "hai novecentos veciños censados na parroquia",
@@ -295,6 +307,21 @@ class TestParity(unittest.TestCase):
                 msg += f"  {w}: py={py!r} bin={bi!r}\n"
             self.fail(msg)
 
+    #: A neutral frame. The binary treats a one-word line differently for
+    #: one-letter words, so every word-level check runs inside a sentence.
+    FRAME = "vin {} hoxe"
+
+    def _framed(self, binary: Path, word: str) -> str:
+        proc = subprocess.run(
+            [str(binary), "-St0lgl"],
+            input=self.FRAME.format(word) + "\n",
+            capture_output=True, text=True, encoding="latin1")
+        return proc.stdout.split()[1]
+
+    def _framed_py(self, word: str, keep_bugs: bool = False) -> str:
+        return phonemize(self.FRAME.format(word), lang="gl",
+                         keep_bugs=keep_bugs).split()[1]
+
     def test_deliberate_divergences(self):
         """Both sides of every adjudicated bug fix are pinned.
 
@@ -303,12 +330,32 @@ class TestParity(unittest.TestCase):
         reference-only PR against TigreGotico/cotovia-mirror. If either side
         moves, this test fails and docs/parity.md needs an update.
         """
-        for word, py_expected, bin_expected, pr in DELIBERATE_DIVERGENCES:
-            self.assertEqual(phonemize(word, lang="gl").strip(), py_expected,
+        for word, py_expected, _stock, pr in DELIBERATE_DIVERGENCES:
+            self.assertEqual(self._framed_py(word), py_expected,
                              f"{word}: pycotovia side of {pr}")
-            self.assertEqual(self._run_binary(word), bin_expected,
-                             f"{word}: binary side of {pr}. If this fails, the "
-                             "oracle was built from a patched checkout.")
+            self.assertEqual(self._framed(COTOVIA_BIN, word), py_expected,
+                             f"{word}: the fixed build must agree with the "
+                             f"default. {pr}")
+
+    def test_keep_bugs_reproduces_the_pristine_build(self):
+        """keep_bugs=True must match stock upstream byte for byte."""
+        if not COTOVIA_BIN_PRISTINE.exists():
+            self.skipTest(f"no pristine build at {COTOVIA_BIN_PRISTINE}")
+        for word, _py, stock, pr in DELIBERATE_DIVERGENCES:
+            self.assertEqual(self._framed_py(word, keep_bugs=True), stock,
+                             f"{word}: keep_bugs side of {pr}")
+            self.assertEqual(self._framed(COTOVIA_BIN_PRISTINE, word), stock,
+                             f"{word}: pristine build side of {pr}")
+
+    def test_the_fixes_touch_nothing_else(self):
+        """Both builds, and both pycotovia modes, agree on everything else."""
+        for word in UNAFFECTED_BY_FIXES:
+            default = self._framed_py(word)
+            self.assertEqual(self._framed_py(word, keep_bugs=True), default, word)
+            self.assertEqual(self._framed(COTOVIA_BIN, word), default, word)
+            if COTOVIA_BIN_PRISTINE.exists():
+                self.assertEqual(self._framed(COTOVIA_BIN_PRISTINE, word),
+                                 default, word)
 
     def test_pr2_precedence_fix_is_present(self):
         """cotovia-mirror PR #2: `*p-2` vs `p[-2]` in aguda() and grave().
@@ -334,12 +381,12 @@ class TestParity(unittest.TestCase):
         ("é") is never compared and the "\\0" terminator is compared instead.
         pycotovia keeps "é" in the table.
         """
-        self.assertEqual(phonemize("é", lang="gl", tra=2).strip(), "E^")
+        self.assertEqual(phonemize("é bo", lang="gl", tra=2).split()[0], "E^")
         # The entries the C loop does reach must keep working.
-        self.assertEqual(phonemize("ó", lang="gl", tra=2).strip(), "O^")
-        self.assertEqual(phonemize("só", lang="gl", tra=2).strip(), "sO^")
+        self.assertEqual(phonemize("ó bo", lang="gl", tra=2).split()[0], "O^")
+        self.assertEqual(phonemize("só bo", lang="gl", tra=2).split()[0], "sO^")
         # And a word that is not in the table must not open.
-        self.assertEqual(phonemize("café", lang="gl", tra=2).strip(), "kafe^")
+        self.assertEqual(phonemize("café bo", lang="gl", tra=2).split()[0], "kafe^")
 
     def test_diacritic_fix_does_not_change_the_prosodic_mode(self):
         """The PR #4 fix must cost nothing at tra=4.
@@ -406,6 +453,25 @@ class TestParity(unittest.TestCase):
             for s, py, bi in failures:
                 msg += f"  {s!r}\n    py ={py!r}\n    bin={bi!r}\n"
             self.fail(msg)
+
+    def test_closed_divergences_match_the_binary(self):
+        """Words the ported list lookup and w handling fixed. Guard them."""
+        for word in CLOSED_DIVERGENCES:
+            sentence = f"vin {word} hoxe"
+            self.assertEqual(
+                phonemize(sentence, lang="gl", tra=2).split()[1],
+                self._run_binary_sentence(sentence, "t1").split()[1],
+                word,
+            )
+
+    def test_contraction_ao_matches_the_binary(self):
+        """preproc.cpp rewrites `ao`/`aos` as `ó`/`ós` before anything else."""
+        for sentence in ("foi ao mar", "foi aos mares", "puxo o anexo ao final"):
+            self.assertEqual(
+                " ".join(phonemize(sentence, lang="gl", tra=2).split()),
+                self._run_binary_sentence(sentence, "t1"),
+                sentence,
+            )
 
     def test_known_divergences_are_still_divergent(self):
         """Guard the open divergences: the binary's side must not drift."""

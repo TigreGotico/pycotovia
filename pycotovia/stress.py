@@ -43,7 +43,13 @@ DIACRITICOS_OPOSICION = (
 )
 
 
-def diacritico_dif_aberta_pechada(syllabified: str) -> str | None:
+#: The same table as the stock binary reaches it. `keep_bugs=True` uses this
+#: one, which is `DIACRITICOS_OPOSICION` without its first entry.
+DIACRITICOS_OPOSICION_STOCK = DIACRITICOS_OPOSICION[1:]
+
+
+def diacritico_dif_aberta_pechada(syllabified: str,
+                                  keep_bugs: bool = False) -> str | None:
     """Return the stressed form of an open/closed-opposition word, else None.
 
     Port of ``diacritico_dif_aberta_pechada()`` in ``sil_acen.cpp``: the
@@ -56,17 +62,21 @@ def diacritico_dif_aberta_pechada(syllabified: str) -> str | None:
             break
     if pos < 0:
         return None
-    if syllabified not in DIACRITICOS_OPOSICION:
+    table = DIACRITICOS_OPOSICION_STOCK if keep_bugs else DIACRITICOS_OPOSICION
+    if syllabified not in table:
         return None
     return syllabified[:pos + 1] + '^' + syllabified[pos + 1:]
 
 
-def assign_stress(syllabified: str, lang: str = "gl") -> str:
+def assign_stress(syllabified: str, lang: str = "gl",
+                  keep_bugs: bool = False) -> str:
     """Place the prosodic stress marker ^ after the stressed vowel.
 
     Args:
         syllabified: Syllabified word (e.g. "ca-sa", "can-tar")
         lang: "gl" for Galician, "es" for Spanish
+        keep_bugs: reproduce the stock upstream binary, defects included.
+            See docs/oracles.md.
 
     Returns:
         Word with ^ inserted after the stressed vowel, e.g. "ca^-sa"
@@ -79,7 +89,7 @@ def assign_stress(syllabified: str, lang: str = "gl") -> str:
 
     # Words whose graphic accent marks an open/closed opposition keep it.
     if lang == "gl":
-        opos = diacritico_dif_aberta_pechada(syllabified)
+        opos = diacritico_dif_aberta_pechada(syllabified, keep_bugs)
         if opos is not None:
             return opos
 
@@ -114,38 +124,38 @@ def assign_stress(syllabified: str, lang: str = "gl") -> str:
     if consonante(last):
         if last == 'n' or last == 'N':
             if '-' in syllabified:
-                stress_pos = _grave(syllabified)
+                stress_pos = _grave(syllabified, keep_bugs)
             else:
-                stress_pos = _aguda(syllabified)
+                stress_pos = _aguda(syllabified, keep_bugs)
         elif last == 's' or last == 'S':
             if '-' not in syllabified:
-                stress_pos = _aguda(syllabified)
+                stress_pos = _aguda(syllabified, keep_bugs)
             else:
                 ppt = len(syllabified) - 1
                 if ppt >= 2 and vocal(syllabified[ppt - 2]):
                     chk = syllabified[ppt - 1]
                     if chk == 'i' or chk == 'u':
-                        stress_pos = _aguda(syllabified)
+                        stress_pos = _aguda(syllabified, keep_bugs)
                     else:
-                        stress_pos = _grave(syllabified)
+                        stress_pos = _grave(syllabified, keep_bugs)
                 else:
-                    stress_pos = _grave(syllabified)
+                    stress_pos = _grave(syllabified, keep_bugs)
         else:
-            stress_pos = _aguda(syllabified)
+            stress_pos = _aguda(syllabified, keep_bugs)
     elif vocal(last):
         if last in ('i', 'I', 'u', 'U'):
             if len(word) > 1 and vocal(word[-2]):
-                stress_pos = _aguda(syllabified)
+                stress_pos = _aguda(syllabified, keep_bugs)
             else:
                 if '-' in syllabified:
-                    stress_pos = _grave(syllabified)
+                    stress_pos = _grave(syllabified, keep_bugs)
                 else:
-                    stress_pos = _aguda(syllabified)
+                    stress_pos = _aguda(syllabified, keep_bugs)
         else:
             if '-' in syllabified:
-                stress_pos = _grave(syllabified)
+                stress_pos = _grave(syllabified, keep_bugs)
             else:
-                stress_pos = _aguda(syllabified)
+                stress_pos = _aguda(syllabified, keep_bugs)
     else:
         return syllabified
 
@@ -155,7 +165,22 @@ def assign_stress(syllabified: str, lang: str = "gl") -> str:
     return "".join(result_list)
 
 
-def _grave(s: str) -> int | None:
+def _silent_u_guard(s: str, pos: int, keep_bugs: bool) -> bool:
+    """Is the `u` before `s[pos]` the silent `u` of `qu`/`gu`?
+
+    The intended test reads the letter two positions back. The stock binary
+    writes `(*p-2)=='q' || (*p-2)=='g'`, which is `((*p)-2)`: the value of the
+    current character minus two, not the character two positions back. That is
+    true exactly when `s[pos]` is `'i'` (0x69 - 2 == 0x67 == `'g'`) or `'s'`,
+    so the guard fires for every `i` and the stress never shifts.
+    See docs/oracles.md.
+    """
+    if keep_bugs:
+        return chr(ord(s[pos]) - 2) in ('q', 'g')
+    return s[pos - 2] in ('q', 'g')
+
+
+def _grave(s: str, keep_bugs: bool = False) -> int | None:
     """Find stressed vowel for grave (penultimate) words — port of grave() in sil_acen.cpp.
 
     Scans backwards from end to find last syllable separator, then finds
@@ -189,13 +214,13 @@ def _grave(s: str) -> int | None:
             # EXCEPT: silent u — if prev is u/ü preceded by q/g, don't shift
             prev = s[pos - 1]
             if prev == 'u' or ord(prev) == 0xFC:
-                if pos >= 2 and s[pos - 2] in ('q', 'g'):
+                if pos >= 2 and _silent_u_guard(s, pos, keep_bugs):
                     return pos  # Keep stress — silent u
             pos -= 1  # Shift stress back
     return pos
 
 
-def _aguda(s: str) -> int | None:
+def _aguda(s: str, keep_bugs: bool = False) -> int | None:
     """Find stressed vowel for aguda (final) words — port of aguda() in sil_acen.cpp.
 
     Scans backwards from end to find the last vowel.
@@ -214,6 +239,7 @@ def _aguda(s: str) -> int | None:
     if b in (0x69, 0x75, 0x49, 0x55, 0xFC, 0xDC):
         if pos > 0 and vocal(s[pos - 1]):
             # EXCEPT: silent u after q/g — don't shift back
-            if not (s[pos - 1] == 'u' and pos >= 2 and s[pos - 2] in ('q', 'g')):
+            if not (s[pos - 1] == 'u' and pos >= 2
+                    and _silent_u_guard(s, pos, keep_bugs)):
                 pos -= 1
     return pos

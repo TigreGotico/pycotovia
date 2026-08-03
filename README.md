@@ -10,7 +10,8 @@ Pure-Python G2P (grapheme-to-phoneme) phonemizer for **Galician** and **Spanish*
 - **Two languages**: Galician (`gl`) and Spanish (`es`) with language-specific exception lists and rewrite rules.
 - **One tiny dependency**: pure Python, no C extensions, no heavy ML models — [scriptconv](https://github.com/TigreGotico/scriptconv) is the only requirement.
 - **Fast enough**: single-word latency is well under 1 ms on modern hardware.
-- **Measured against the original**: every mode is scored against the Cotovia C binary on a 5000-sentence Galician corpus. The numbers, the gaps and the two deliberate bug fixes are in [docs/parity.md](docs/parity.md).
+- **Measured against the original**: every mode is scored against the Cotovia C binary on a 5000-sentence Galician corpus. The numbers and the gaps are in [docs/parity.md](docs/parity.md).
+- **Two oracles**: the default reproduces the reference build (upstream plus two adjudicated bug fixes); `keep_bugs=True` reproduces the stock upstream binary byte for byte. See [docs/oracles.md](docs/oracles.md).
 - **Multi-alphabet output**: native Cotovía notation, IPA, X-SAMPA, ARPABET, Lexique, Kirshenbaum, or RFE, picked with one argument.
 
 ## Installation
@@ -91,8 +92,8 @@ cat words.txt | pycotovia -l gl > phonemes.txt
 | Word category | First entry in `palabrasFuncion.txt` | Viterbi tagger over the dictionaries |
 | Text normalisation | Not ported | Numbers, dates and abbreviations expanded |
 
-On 5000 Galician Wikipedia sentences, pycotovia reproduces 95.0% of the
-binary's words at `tra=1` and 84.6% at `tra=4`. It is not a drop-in
+On 5000 Galician Wikipedia sentences, pycotovia reproduces 96.7% of the
+reference build's words at `tra=1` and 85.1% at `tra=4`. It is not a drop-in
 replacement for the binary. [docs/parity.md](docs/parity.md) gives the number
 for every mode, a module-by-module feature matrix, and the cause of each
 remaining gap.
@@ -101,6 +102,7 @@ remaining gap.
 
 - [docs/architecture.md](docs/architecture.md): pipeline overview and module map
 - [docs/parity.md](docs/parity.md): verification against the Cotovia binary
+- [docs/oracles.md](docs/oracles.md): the two reference builds and the case for each bug fix
 - [docs/api.md](docs/api.md): public API reference
 
 ## Examples
