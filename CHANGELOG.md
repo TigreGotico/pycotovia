@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0a2](https://github.com/TigreGotico/pycotovia/tree/0.4.0a2) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.4.0a1...0.4.0a2)
+
+**Merged pull requests:**
+
+- docs: honest, measured parity audit against the Cotovia binary [\#14](https://github.com/TigreGotico/pycotovia/pull/14) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.4.0a1](https://github.com/TigreGotico/pycotovia/tree/0.4.0a1) (2026-08-03)
 
 [Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.3.1a1...0.4.0a1)
