@@ -410,61 +410,62 @@ class TestExceptionsExtended(unittest.TestCase):
         self.assertFalse(_prefix_match("casa", X_PASA_A_KS))
 
     def test_xe_galician_x_pasa_a_ks(self):
-        result = trata_excepcions_xe("anexo", lang="gl")
+        result = trata_excepcions_xe("anexo", "a-ne^-xo", lang="gl")
         self.assertIsNotNone(result)
-        self.assertIn("ks", result)
+        # The x sits after a syllable boundary, so the cluster splits: k-s
+        self.assertEqual("a-ne^k-so", result)
 
     def test_xe_galician_pronuncianse(self):
         # complexo is in PRONUNCIANSE_CON_XE → return None
-        result = trata_excepcions_xe("complexo", lang="gl")
+        result = trata_excepcions_xe("complexo", "com-ple^-xo", lang="gl")
         self.assertIsNone(result)
 
     def test_xe_galician_no_match(self):
-        result = trata_excepcions_xe("gato", lang="gl")
+        result = trata_excepcions_xe("gato", "ga^-to", lang="gl")
         self.assertIsNone(result)
 
     def test_xe_spanish_any_x(self):
-        result = trata_excepcions_xe("taxi", lang="es")
+        result = trata_excepcions_xe("taxi", "ta^-xi", lang="es")
         self.assertIsNotNone(result)
-        self.assertIn("ks", result)
+        self.assertEqual("ta^k-si", result)
 
     def test_xe_spanish_pronuncianse_overrides(self):
         # complexo is still in PRONUNCIANSE_CON_XE
-        result = trata_excepcions_xe("complexo", lang="es")
+        result = trata_excepcions_xe("complexo", "com-ple^-xo", lang="es")
         self.assertIsNone(result)
 
     def test_xe_spanish_no_x(self):
-        result = trata_excepcions_xe("gato", lang="es")
+        result = trata_excepcions_xe("gato", "ga^-to", lang="es")
         self.assertIsNone(result)
 
     def test_w_u(self):
-        result = trata_excepcions_w("twist")
+        result = trata_excepcions_w("twist", "twi^st")
         self.assertIsNotNone(result)
         self.assertIn("u", result)
         self.assertNotIn("w", result)
 
     def test_w_gu(self):
-        result = trata_excepcions_w("sandwich")
+        result = trata_excepcions_w("sandwich", "sand-wi^ch")
         self.assertIsNotNone(result)
         self.assertIn("gu", result)
 
     def test_w_no_match(self):
-        result = trata_excepcions_w("gato")
+        result = trata_excepcions_w("gato", "ga^-to")
         self.assertIsNone(result)
 
     def test_w_u_all_words(self):
         for word in W_PRONUNCIASE_U:
-            result = trata_excepcions_w(word)
+            result = trata_excepcions_w(word, word)
             self.assertIsNotNone(result, word)
 
     def test_w_gu_all_words(self):
         for word in W_PRONUNCIASE_GU:
-            result = trata_excepcions_w(word)
+            result = trata_excepcions_w(word, word)
             self.assertIsNotNone(result, word)
 
     def test_xe_x_pasa_a_ks_all(self):
         for entry in X_PASA_A_KS[:10]:
-            result = trata_excepcions_xe(entry, lang="gl")
+            result = trata_excepcions_xe(entry, entry, lang="gl")
             self.assertIsNotNone(result, entry)
             self.assertIn("ks", result, entry)
 
@@ -566,7 +567,8 @@ class TestPhoneizeDeeper(unittest.TestCase):
             Phonemizer(lang="fr")
 
     def test_empty_string(self):
-        self.assertEqual(phonemize("", lang="gl"), " ")
+        # The binary prints nothing at all for empty input.
+        self.assertEqual(phonemize("", lang="gl"), "")
 
     def test_only_punctuation(self):
         result = phonemize("!!! ???", lang="gl")

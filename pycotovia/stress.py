@@ -8,6 +8,45 @@ from .charset import (
 
 SEPARADOR_SILABAS = '-'
 
+# Port of diacriticos_oposicion_aberta_pechada[] in sil_acen.cpp.
+#
+# For these words the graphic accent marks an open/closed opposition rather
+# than stress, so Cotovia keeps the accented vowel instead of replacing it
+# with the base vowel plus a stress mark.  The rule engine then maps é/ó to
+# the open phonemes E/O.  The entries are matched against the *syllabified*
+# word, which is why some of them carry syllable separators.
+#
+# NOTE: the C loop is `while (*list[cont++] != 0) if (strcmp(list[cont], ...))`
+# — it increments the index before the body reads it, so index 0 ("é") is
+# never compared and "é" comes out closed.  We replicate that off-by-one:
+# the ProxectoNos Cotovia-alphabet voices were trained on the binary's real
+# output, so diverging here would desynchronise every downstream model.
+# The excluded entry is kept below, commented, to document the divergence.
+DIACRITICOS_OPOSICION = (
+    # "é",  # never reached by the C loop — see note above
+    "ó", "ós", "có", "cós", "nós", "vós", "vén", "vés",
+    "pré-sa", "bó-la", "bó-las", "ó-so", "cóm-pre", "pó-la",
+    "tén", "té", "dó", "sé", "nó", "só",
+)
+
+
+def diacritico_dif_aberta_pechada(syllabified: str) -> str | None:
+    """Return the stressed form of an open/closed-opposition word, else None.
+
+    Port of ``diacritico_dif_aberta_pechada()`` in ``sil_acen.cpp``: the
+    prosodic stress mark goes after the first é/ó and the accent is kept.
+    """
+    pos = -1
+    for i, ch in enumerate(syllabified):
+        if ch in ('é', 'ó'):
+            pos = i
+            break
+    if pos < 0:
+        return None
+    if syllabified not in DIACRITICOS_OPOSICION:
+        return None
+    return syllabified[:pos + 1] + '^' + syllabified[pos + 1:]
+
 
 def assign_stress(syllabified: str, lang: str = "gl") -> str:
     """Place the prosodic stress marker ^ after the stressed vowel.
@@ -24,6 +63,12 @@ def assign_stress(syllabified: str, lang: str = "gl") -> str:
 
     if '^' in syllabified:
         return syllabified
+
+    # Words whose graphic accent marks an open/closed opposition keep it.
+    if lang == "gl":
+        opos = diacritico_dif_aberta_pechada(syllabified)
+        if opos is not None:
+            return opos
 
     # Find orthographic accents — the LAST one determines stress
     last_accent_pos = -1
