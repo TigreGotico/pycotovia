@@ -1,59 +1,73 @@
 # Parity verification
 
-We verify pycotovia against the Cotovia C binary by running the same words through both systems and comparing the output phoneme strings.
+We verify pycotovia against the Cotovia C binary. The binary is the oracle: we run the same input through both and compare the output character by character. We never write an expected phoneme string by hand.
 
 ## Test method
 
 1. Build the Cotovia binary from source (`cotovia-mirror/src/cotovia/`).
-2. Run the binary in `-St0lgl` mode (Galician, phonemes only, no stress markers).
-3. Run the same words through `pycotovia.phonemize(word, lang="gl")`.
-4. Compare character-by-character.
+2. Run the binary and pycotovia at equivalent options.
+3. Compare character by character.
+
+pycotovia's `tra` levels are offset by one from the binary's `-t` levels:
+
+| pycotovia | Cotovia binary | Output |
+|-----------|----------------|--------|
+| `tra=1` | `-t0` | Phonemes only |
+| `tra=2` | `-t1` | Phonemes + stress marks |
+| `tra=3` | `-t2` | Phonemes + stress + syllable separators |
+| `tra=4` | — | Raw rule-engine output (no binary equivalent) |
+| — | `-t3` | `-t2` plus pause markers, tonicity and vowel timbre |
+
+Comparing across this offset is a common mistake. It makes pycotovia look badly wrong when it is not.
 
 ## Test corpus
 
-The test corpus covers:
-- Simple vowels and consonants
-- Diphthongs and triphthongs
-- The `gu` + vowel family (`guerra`, `guante`, `guia`, `guion`, `bui`, `fui`, `cuido`, `quilo`, `seguir`)
-- Words ending in `-s`, `-n`, and vowels
-- Words with orthographic accents (`cafe`, `publico`, `politica`)
-- Exception words (`x` → `ks`/`S`, `w` → `gu`/`u`)
-- Common function words
+Two corpora, both in `tests/test_parity.py`:
 
-Total: **93 words**.
+**Words (93).** Simple vowels and consonants; diphthongs and triphthongs; the `gu` + vowel family; words ending in `-s`, `-n` and vowels; words with orthographic accents; exception words; common function words.
+
+**Sentences (56).** Real Galician sentences, grouped by the behaviour they exercise:
+- Open/closed vowel opposition (`ó`, `nós`, `vén`, `só`, `bóla`, `cómpre`) and the closed counterparts that must not open (`é`, `és`, `avó`, `café`)
+- Hyphenated clitics: `-lo/-la/-los/-las` join to the verb, everything else splits
+- The `x` family: terminal `-x`, `próxi-`, and the `pronuncianse_con_xe` exceptions
+- Sentence separators resetting phrase-initial sandhi
+- Function words, clitics and contractions in running text
 
 ## Results
 
-**90 pass, 3 deliberate mismatches.**
+**All 173 tests pass.** There are no deliberate divergences.
 
-### Passing (90 words)
+An earlier version of this document claimed three deliberate mismatches (`bui`, `fui`, `cuido`), on the grounds that a `*p-2` vs `*(p-2)` precedence bug in the C `aguda()`/`grave()` made the binary emit `bwi`/`fwi`/`kwiDo`. **The binary does not do that.** It emits `buj`, `fuj` and `kujDo`, which is what pycotovia emits. The claim was never true of the shipped binary, and `tests/test_parity.py::test_ui_diphthong_matches_binary` now pins both sides.
 
-Examples: `casa`, `cantar`, `canon`, `guerra`, `guante`, `guapo`, `quilo`, `seguir`, `pais`, `maiz`, `cafe`, `europa`, `audio`, `buey`, `miel`, `bien`, `viento`, `ciencia`, `hola`, `gracias`, `que`, `quien`, `aun`, `aunque` …
+## Open divergences
 
-### Deliberate mismatches (3 words)
+These are real, reproduced against the binary, and not yet fixed. `tests/test_parity.py` records them in `KNOWN_DIVERGENCES` and `OPEN_DIVERGENCE_SENTENCES` so the suite fails if either side drifts.
 
-These are the result of a **bug in the Cotovia C source** that we choose not to replicate.
+| Input | pycotovia | Binary | Cause |
+|-------|-----------|--------|-------|
+| `mañá` | `mana^` | `maJa^` | `ACENTO_A_BASE` maps `ñ` (0xF1) and `ç` (0xE7) alongside the accented vowels. A word carrying `ñ` *and* an orthographic accent loses its `ñ`. Affects common words (`mañá`, `compañía`). |
+| `doíalle` at `tra=3` | `Do-i^a-Ze` | `Do-i^-a-Ze` | Hiatus after a stressed `í` is not split. |
+| `ao`, `aos` | `a^-o`, `a^-os` | `O^`, `O^s` | The contraction is a lexical open `O` in the binary. |
+| `luxar` | `luksa^r` | `luSa^r` | `_prefix_match` scans the whole list; the C uses `comprobar_en_lista_de_inicio_de_palabras`, a binary search over a list that is not fully sorted, so some entries are unreachable. pycotovia matches entries the binary never reaches. |
+| `twist`, `newton`, `wolfram` | `twi^st`, `ne^wtoN`, `Bolfra^m` | `tewi^st`, `ne^BtoN`, `bolfra^m` | `w` exception handling. The C rewrites every `w` in the word and falls back to `b`; pycotovia rewrites only the first and leaves the fallback to the rule engine. |
 
-| Word | pycotovia (correct) | Cotovia binary (bug) | Cause |
-|------|---------------------|----------------------|-------|
-| `bui` | `buj` | `bwi` | C `aguda()` / `grave()` has a precedence bug: `(*p-2)=='g'` is parsed as `(*p)-2=='g'`. When `*p == 'i'`, `(*p)-2` equals 103 = `'g'`, so the guard is always true and stress never shifts back to `u`. |
-| `fui` | `fuj` | `fwi` | Same bug. |
-| `cuido` | `kujDo` | `kwiDo` | Same bug. |
+## Unported: the `-t3` prosodic stage
 
-In all three cases, the correct Galician stress rule should shift stress from the final `i` to the preceding `u` when `ui` is a rising diphthong. The C source intends to guard this with `q`/`g` (for `qu`/`gu` sequences), but the precedence bug makes the guard always fire for `i`, preventing the shift.
+`Trat_fon::atono_ou_tonico_aberto_ou_pechado_e_w_x()` drops the stress mark from atonic function words and assigns open/closed vowel timbre to nouns. The binary calls it from its main pipeline (`cotovia.cpp:2911`), and its effect is visible only in `-t3` output.
 
-## Why not replicate the bug?
+pycotovia does not port it, so `timbre.py` is currently unused and there is no `tra` level equivalent to `-t3`.
 
-The bug is a genuine C precedence error (`*p-2` vs `*(p-2)`). Replicating it would make pycotovia silently wrong for a well-defined class of Galician words. We document the divergence instead.
+This matters downstream. The ProxectoNos Cotovia-alphabet gold transcriptions are `-t3` output with the syllable separators and pause markers stripped, `X^` rewritten as an accented vowel, and punctuation restored from the source text. Scoring pycotovia against that gold without the stage looks like a 47% stress error, but the binary at `-t1` scores the same way — the gap is the missing mode, not a rule defect.
+
+Note that a copy of this call at `transcripcion.cpp:741` *is* commented out. Reading only that copy suggests the stage is dead. It is not.
 
 ## Running the parity test
 
 ```bash
-cd pycotovia
-python3 tests/test_parity.py
+python3 -m pytest tests/test_parity.py
 ```
 
-This requires the Cotovia binary to be built at `../cotovia-mirror/bin/cotovia`. If the binary is missing, the test skips.
+This requires the Cotovia binary at `../cotovia-mirror/bin/cotovia`. If the binary is missing, the test skips.
 
 ---
 [← Limitations](limitations.md) · [Home](../README.md) · [API →](api.md)
