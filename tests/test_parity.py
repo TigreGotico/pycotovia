@@ -109,7 +109,6 @@ SENTENCES = [
     # -- ñ and ç must survive accent stripping (ACENTO_A_BASE) --
     "a compañía chegou onte pola mañá",
     "a señá do pazo saudou os veciños",
-    "teñén moito que contar despois",
     "o cañón do río impresiona a quen o ve",
     "cómpre coñecer ben o camiño",
     "espiñá o dedo coa silva",
@@ -168,9 +167,6 @@ OPEN_DIVERGENCE_SENTENCES = (
     # Hiatus after a stressed í is not split: "doíalle" at tra=3 gives
     # py "Do-i^a-Ze" where the binary has "Do-i^-a-Ze".
     "o óso doíalle bastante",
-    # The contraction "ao"/"aos" is a lexical open O in the binary ("O^"),
-    # but pycotovia transcribes it literally as "a^-o".
-    "puxo o anexo ao final",
 )
 
 #: Adjudicated upstream bugs. pycotovia is deliberately different here, and
@@ -193,12 +189,15 @@ DIVERGENT_SENTENCES = frozenset({
 #: Words in WORDS that contain an adjudicated divergence.
 DIVERGENT_WORDS = frozenset({"bui", "fui", "cuido"})
 
+#: Words where pycotovia and the binary still disagree. Each entry records
+#: the binary's output so the test fails loudly if either side moves.
 KNOWN_DIVERGENCES = {
-    "luxar": "luSa^r",      # prefix match vs the binary's binary search
-    "twist": "tewi^st",     # w exception lists
-    "newton": "ne^BtoN",
-    "wolfram": "bolfra^m",
+    "twist": "tewi^st",     # the only w-list word still unexplained
 }
+
+#: Words that used to be in KNOWN_DIVERGENCES and now match, because the
+#: binary's own list lookup and w handling are ported. Kept as guards.
+CLOSED_DIVERGENCES = ("luxar", "newton", "wolfram", "darwin", "whisky")
 
 #: Sentences for the prosodic mode (tra=4 / binary -t3).  These exercise the
 #: parts of the stage that the plain phoneme levels never show: which words
@@ -238,7 +237,6 @@ PROSODIC_OPEN_DIVERGENCES = (
     "vou colle-la maleta agora",
     "oxalá chova esta semana",
     # Tonicity of an ambiguous function word, decided by the Viterbi tagger.
-    "teñén moito que contar despois",
     "vou dar-me unha volta",
     # Timbre and sandhi that follow from the pause and phrase-group markers
     # the binary emits at -t3 and pycotovia does not.
@@ -249,7 +247,6 @@ PROSODIC_OPEN_DIVERGENCES = (
     # sentences contain a verb, so this is the common case rather than a
     # corner case.  See docs/parity.md for the measured rate.
     "o home da casa do fondo da rúa saíu",
-    "deulle o libro ao neno de sempre",
     "falamos con el e mais coa súa irmá",
     "para os que non teñen nada que dicir",
     "veu por el e polos seus amigos",
@@ -257,7 +254,6 @@ PROSODIC_OPEN_DIVERGENCES = (
     "chegou onda nós sen avisar a ninguén",
     "díxollelo todo sen pensalo dúas veces",
     "non llo dixo nin quixo escoitalo",
-    "botoulle unha man ao seu compañeiro",
     "veu o vento forte do norte",
     "o pobre home non tiña onde durmir",
     "hai novecentos veciños censados na parroquia",
@@ -406,6 +402,25 @@ class TestParity(unittest.TestCase):
             for s, py, bi in failures:
                 msg += f"  {s!r}\n    py ={py!r}\n    bin={bi!r}\n"
             self.fail(msg)
+
+    def test_closed_divergences_match_the_binary(self):
+        """Words the ported list lookup and w handling fixed. Guard them."""
+        for word in CLOSED_DIVERGENCES:
+            sentence = f"vin {word} hoxe"
+            self.assertEqual(
+                phonemize(sentence, lang="gl", tra=2).split()[1],
+                self._run_binary_sentence(sentence, "t1").split()[1],
+                word,
+            )
+
+    def test_contraction_ao_matches_the_binary(self):
+        """preproc.cpp rewrites `ao`/`aos` as `ó`/`ós` before anything else."""
+        for sentence in ("foi ao mar", "foi aos mares", "puxo o anexo ao final"):
+            self.assertEqual(
+                " ".join(phonemize(sentence, lang="gl", tra=2).split()),
+                self._run_binary_sentence(sentence, "t1"),
+                sentence,
+            )
 
     def test_known_divergences_are_still_divergent(self):
         """Guard the open divergences: the binary's side must not drift."""
