@@ -7,6 +7,7 @@ This test requires the Cotovia binary to be built at:
 If the binary is missing, the test skips.
 """
 
+import re
 import subprocess
 import sys
 import unittest
@@ -169,6 +170,70 @@ KNOWN_DIVERGENCES = {
     "wolfram": "bolfra^m",
 }
 
+#: Sentences for the prosodic mode (tra=4 / binary -t3).  These exercise the
+#: parts of the stage that the plain phoneme levels never show: which words
+#: keep their stress mark, and which stressed vowels open.
+PROSODIC_SENTENCES = [
+    "dixo que non o sabía de todo",
+    "entre a néboa e a chuvia non se vía nada",
+    "desde aquela non volveu pola aldea",
+    "atopeime con eles no medio da praza",
+    "quedaron connosco na porta do teatro",
+    "o oso comeu o óso do animal",
+    "a bóla de neve rodou pola pena",
+    "colleu a póla e deixouna no chan",
+    "o corpo quedou preso entre as pedras",
+    "a porta da tenda estaba aberta",
+    "a festa da vila foi onte pola noite",
+    "puxo a mesa e serviu o caldo quente",
+    "o ceo estaba limpo de nubes",
+    "pagou catrocentos corenta e seis euros",
+    "conta ata cento vinte e para",
+    "o goberno anunciou onte as novas medidas para o sector",
+    "a xente do lugar sabe ben o que quere e o que non",
+    "non sei se foi el ou se foi o seu irmán quen o fixo",
+]
+
+#: Divergences that remain at -t3.  The prosodic stage depends on Cotovia's
+#: morphosyntactic disambiguator and its pause/syntagma modules, neither of
+#: which pycotovia ports.  Recorded so the suite fails if either side drifts.
+PROSODIC_OPEN_DIVERGENCES = (
+    # Verb forms: the binary resolves their timbre through
+    # manexo_do_timbre_verbal() and the conjugation tables in verbos.txt.
+    # pycotovia has no verb lexicon, so they fall through to the noun rules.
+    "nós non sabemos nada diso",
+    "vós tédelo dereito de falar",
+    "o óso rompeulle bastante",
+    "os ósos do animal apareceron",
+    "vou colle-la maleta agora",
+    "oxalá chova esta semana",
+    # Tonicity of an ambiguous function word, decided by the Viterbi tagger.
+    "teñén moito que contar despois",
+    "vou dar-me unha volta",
+    # Timbre and sandhi that follow from the pause and phrase-group markers
+    # the binary emits at -t3 and pycotovia does not.
+    "cómpre coñecer ben o camiño",
+    "o ben-estar da xente importa",
+    "acabouse a festa, vamos para a casa",
+    # Same three causes, met in ordinary running text: most natural Galician
+    # sentences contain a verb, so this is the common case rather than a
+    # corner case.  See docs/parity.md for the measured rate.
+    "o home da casa do fondo da rúa saíu",
+    "deulle o libro ao neno de sempre",
+    "falamos con el e mais coa súa irmá",
+    "para os que non teñen nada que dicir",
+    "veu por el e polos seus amigos",
+    "a min non me parece ben iso",
+    "chegou onda nós sen avisar a ninguén",
+    "díxollelo todo sen pensalo dúas veces",
+    "non llo dixo nin quixo escoitalo",
+    "botoulle unha man ao seu compañeiro",
+    "veu o vento forte do norte",
+    "o pobre home non tiña onde durmir",
+    "hai novecentos veciños censados na parroquia",
+    "cando chegou a noite todos volveron para as súas casas",
+)
+
 
 @unittest.skipUnless(COTOVIA_BIN.exists(), f"Cotovia binary not found at {COTOVIA_BIN}")
 class TestParity(unittest.TestCase):
@@ -221,6 +286,19 @@ class TestParity(unittest.TestCase):
         )
         return " ".join(proc.stdout.split())
 
+    def _run_binary_t3(self, sentence: str) -> list[str]:
+        """Binary -t3 output with the pause and phrase-group markers removed."""
+        proc = subprocess.run(
+            [str(COTOVIA_BIN), "-St3lgl"],
+            input=sentence + "\n",
+            capture_output=True,
+            text=True,
+            encoding="latin1",
+        )
+        out = re.sub(r"#%[^%]*%#", "", proc.stdout)
+        out = re.sub(r"%[^%]*%", "", out)
+        return out.split()
+
     def test_sentences_match_binary_with_stress(self):
         """pycotovia tra=2 must equal the binary's -t1 (phonemes + stress)."""
         failures = []
@@ -258,6 +336,46 @@ class TestParity(unittest.TestCase):
                 phonemize(f"vin {word} hoxe", lang="gl", tra=2).split()[1],
                 expected_bin,
                 f"{word} now matches the binary — remove it from KNOWN_DIVERGENCES",
+            )
+
+
+    def test_prosodic_sentences_match_binary(self):
+        """pycotovia tra=4 must equal the binary's -t3 prosodic output.
+
+        The binary also prints pause and phrase-group markers at -t3; those
+        need modules pycotovia does not port, so they are stripped before
+        comparing.
+        """
+        failures = []
+        for sentence in PROSODIC_SENTENCES:
+            py = phonemize(sentence, lang="gl", tra=4).split()
+            binary = self._run_binary_t3(sentence)
+            if py != binary:
+                failures.append((sentence, py, binary))
+        if failures:
+            msg = f"{len(failures)} / {len(PROSODIC_SENTENCES)} mismatched:\n"
+            for s, py, bi in failures:
+                msg += f"  {s!r}\n    py ={py}\n    bin={bi}\n"
+            self.fail(msg)
+
+    def test_prosodic_mode_destresses_function_words(self):
+        """The whole point of the stage: function words lose their mark."""
+        plain = phonemize("a defensa faina ese goberno", lang="gl", tra=3)
+        prosodic = phonemize("a defensa faina ese goberno", lang="gl", tra=4)
+        self.assertTrue(plain.startswith("a^"))
+        self.assertTrue(prosodic.startswith("a "))
+        # and nouns get their open vowels
+        self.assertIn("E^", prosodic)
+        self.assertNotIn("E^", plain)
+
+    def test_prosodic_open_divergences_are_still_divergent(self):
+        """Guard the -t3 gaps: the binary's side must not drift."""
+        for sentence in PROSODIC_OPEN_DIVERGENCES:
+            self.assertNotEqual(
+                phonemize(sentence, lang="gl", tra=4).split(),
+                self._run_binary_t3(sentence),
+                f"{sentence!r} now matches — remove it from "
+                "PROSODIC_OPEN_DIVERGENCES",
             )
 
 

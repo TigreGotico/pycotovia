@@ -11,7 +11,12 @@ Convert plain text to a phoneme string.
   - `1` = phonemes only (default)
   - `2` = phonemes + stress markers (`^`)
   - `3` = phonemes + stress + syllable separators (`-`)
-  - `4` = raw rule-engine output (with `#` / `%` blocks)
+  - `4` = prosodic mode: function words lose their stress mark and nouns get
+    their open vowels (`E`/`O`). Matches the binary's `-t3`.
+  - `5` = raw rule-engine output (with `#` / `%` blocks)
+
+  These line up with Cotovía's `-t0`..`-t3` flags, offset by one:
+  `tra=N` corresponds to `-t(N-1)`.
 - `alphabet` (str): output phonetic alphabet, one of `pycotovia.ALPHABETS`.
   Defaults to `"cotovia"` (native notation, no behavior change from prior
   releases). Any other value converts the native output through
@@ -31,6 +36,7 @@ import pycotovia
 pycotovia.phonemize("guerra", lang="gl")        # "gerra"
 pycotovia.phonemize("guerra", lang="gl", tra=2)   # "g^erra"
 pycotovia.phonemize("guerra", lang="gl", tra=3)   # "g^e-rra"
+pycotovia.phonemize("a defensa", lang="gl", tra=4)  # "a De-fE^N-sa" (a is atonic)
 pycotovia.phonemize("guerra", lang="gl", alphabet="ipa")       # "ɡera "
 pycotovia.phonemize("cantar", lang="gl", alphabet="x-sampa")   # "kanta4 "
 ```

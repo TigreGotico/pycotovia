@@ -13,7 +13,7 @@ from .charset import letra, to_minusculas
 from .exceptions import trata_excepcions_xe, trata_excepcions_w, AlphabetError
 from .syllabify import syllabify
 from .stress import assign_stress
-from .timbre import assign_timbre
+from .prosody import apply_prosody
 from .engine import apply_rules
 from .rules_data import GALEGO_RULES_SV, CASTELLANO_RULES_SV
 from .alphabets import ALPHABETS, NATIVE_ALPHABET, to_alphabet
@@ -123,7 +123,23 @@ class Phonemizer:
 
         Args:
             text: Input text (Latin-1 or Unicode)
-            tra: Output level (1=phonemes, 2=+stress, 3=+syllables, 4=raw)
+            tra: Output level. These line up with Cotovía's ``-t`` flags,
+                offset by one:
+
+                ===  ============  =================================
+                tra  binary        Output
+                ===  ============  =================================
+                1    ``-t0``       Phonemes only
+                2    ``-t1``       + stress marks
+                3    ``-t2``       + syllable separators
+                4    ``-t3``       + tonicity and open-vowel timbre
+                5    —             Raw rule-engine output (debug)
+                ===  ============  =================================
+
+                ``tra=4`` runs the prosodic stage: function words lose their
+                stress mark and nouns get their open vowels (E/O). It does
+                not emit the ``#%pausa%#`` markers the binary prints at
+                ``-t3``, which need the pause and syntagma modules.
             alphabet: Output phonetic alphabet. Defaults to pycotovia's
                 native Cotovía notation (no behavior change from prior
                 releases). Any other value is produced by converting the
@@ -147,20 +163,25 @@ class Phonemizer:
             # Step 2: Process each word through the pre-rules pipeline
             processed_words = [self._preprocess_word(w) for w in words]
 
-            # Step 3: Join into a phrase with silence wrappers (matching binary)
+            # Step 3: Sentence-level prosody, the stage the binary runs at
+            # cotovia.cpp:2911 and shows only at -t3.
+            if tra >= 4:
+                processed_words = apply_prosody(words, processed_words, self.lang)
+
+            # Step 4: Join into a phrase with silence wrappers (matching binary)
             phrase = "## " + " ".join(processed_words) + " ##"
 
-            # Step 4: Apply the G2P rewrite rules to the whole phrase
+            # Step 5: Apply the G2P rewrite rules to the whole phrase
             phoneme_phrase = apply_rules(phrase, self.rules)
 
-            # Step 5: Strip per tra level
-            if tra >= 4:
+            # Step 6: Strip per tra level
+            if tra >= 5:
                 parts.append(phoneme_phrase)
             else:
-                parts.append(_strip_t0(phoneme_phrase, tra=tra))
+                parts.append(_strip_t0(phoneme_phrase, tra=min(tra, 3)))
         result = "".join(parts)
 
-        # Step 6: Convert to the requested output alphabet, if not native
+        # Step 7: Convert to the requested output alphabet, if not native
         if alphabet != NATIVE_ALPHABET:
             if tra != 1:
                 raise AlphabetError(

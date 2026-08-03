@@ -84,10 +84,15 @@ cat words.txt | pycotovia -l gl > phonemes.txt
 
 | Aspect | pycotovia | Cotovia C binary |
 |--------|-----------|------------------|
-| Timbre (open/closed e/o) | Not applied in transcription mode | Same: only used for voice-building |
-| Stress in `bui`, `fui`, `cuido` | Correctly shifts to `u` (`buj`, `fuj`, `kujDo`) | Bug: keeps stress on `i` (`bwi`, `fwi`, `kwiDo`) due to a precedence error in `aguda()` / `grave()` |
+| Output levels | `tra=1..5` | `-t0..-t3`; `tra=N` matches `-t(N-1)` |
+| Prosody (atonic words, open e/o) | `tra=4` | `-t3` |
+| Pause and phrase-group markers | Not emitted | `#%pausa%#`, `%prop%` at `-t3` |
+| Verb timbre | Falls through to the noun rules | Resolved from the conjugation tables |
+| Word category | First entry in `palabrasFuncion.txt` | Viterbi tagger over the dictionaries |
 
-See [docs/parity.md](docs/parity.md) for the full parity test results and the deliberate divergences.
+At `-t3` pycotovia reproduces 96.4% of the binary's words on the ProxectoNos
+test set. See [docs/parity.md](docs/parity.md) for the full results and the
+open divergences.
 
 ## Documentation
 

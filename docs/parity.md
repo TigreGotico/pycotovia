@@ -15,8 +15,8 @@ pycotovia's `tra` levels are offset by one from the binary's `-t` levels:
 | `tra=1` | `-t0` | Phonemes only |
 | `tra=2` | `-t1` | Phonemes + stress marks |
 | `tra=3` | `-t2` | Phonemes + stress + syllable separators |
-| `tra=4` | — | Raw rule-engine output (no binary equivalent) |
-| — | `-t3` | `-t2` plus pause markers, tonicity and vowel timbre |
+| `tra=4` | `-t3` | `-t2` plus tonicity and vowel timbre |
+| `tra=5` | — | Raw rule-engine output (no binary equivalent) |
 
 Comparing across this offset is a common mistake. It makes pycotovia look badly wrong when it is not.
 
@@ -26,13 +26,15 @@ Two corpora, both in `tests/test_parity.py`:
 
 **Words (93).** Simple vowels and consonants; diphthongs and triphthongs; the `gu` + vowel family; words ending in `-s`, `-n` and vowels; words with orthographic accents; exception words; common function words.
 
-**Sentences (65).** Real Galician sentences, grouped by the behaviour they exercise:
+**Sentences (65)** at the phoneme levels, plus **18** for the prosodic mode. Real Galician sentences, grouped by the behaviour they exercise:
 - Open/closed vowel opposition (`ó`, `nós`, `vén`, `só`, `bóla`, `cómpre`) and the closed counterparts that must not open (`é`, `és`, `avó`, `café`)
 - Hyphenated clitics: `-lo/-la/-los/-las` join to the verb, everything else splits
 - The `x` family: terminal `-x`, `próxi-`, and the `pronuncianse_con_xe` exceptions
 - Sentence separators resetting phrase-initial sandhi
 - `ñ` and `ç` surviving accent stripping
 - Function words, clitics and contractions in running text
+- For `tra=4`: article/preposition/clitic chains, contractions, open-vowel
+  minimal pairs, numerals, and mixed running text
 
 ## Results
 
@@ -51,15 +53,32 @@ These are real, reproduced against the binary, and not yet fixed. `tests/test_pa
 | `luxar` | `luksa^r` | `luSa^r` | `_prefix_match` scans the whole list; the C uses `comprobar_en_lista_de_inicio_de_palabras`, a binary search over a list that is not fully sorted, so some entries are unreachable. pycotovia matches entries the binary never reaches. |
 | `twist`, `newton`, `wolfram` | `twi^st`, `ne^wtoN`, `Bolfra^m` | `tewi^st`, `ne^BtoN`, `bolfra^m` | `w` exception handling. The C rewrites every `w` in the word and falls back to `b`; pycotovia rewrites only the first and leaves the fallback to the rule engine. |
 
-## Unported: the `-t3` prosodic stage
+## The prosodic mode (`tra=4`)
 
-`Trat_fon::atono_ou_tonico_aberto_ou_pechado_e_w_x()` drops the stress mark from atonic function words and assigns open/closed vowel timbre to nouns. The binary calls it from its main pipeline (`cotovia.cpp:2911`), and its effect is visible only in `-t3` output.
+`Trat_fon::atono_ou_tonico_aberto_ou_pechado_e_w_x()` drops the stress mark from atonic function words and assigns open/closed vowel timbre to nouns. The binary calls it from its main pipeline (`cotovia.cpp:2911`), and its effect is visible only in `-t3` output. `tra=4` ports that stage.
 
-pycotovia does not port it, so `timbre.py` is currently unused and there is no `tra` level equivalent to `-t3`.
+This matters downstream: the ProxectoNos Cotovia-alphabet gold transcriptions are `-t3` output. Scoring `tra=2` against that gold looks like a 47% stress error, but the binary at `-t1` scores the same way — the gap was the missing mode, not a rule defect.
 
-This matters downstream. The ProxectoNos Cotovia-alphabet gold transcriptions are `-t3` output with the syllable separators and pause markers stripped, `X^` rewritten as an accented vowel, and punctuation restored from the source text. Scoring pycotovia against that gold without the stage looks like a 47% stress error, but the binary at `-t1` scores the same way — the gap is the missing mode, not a rule defect.
+Note that a copy of the same call at `transcripcion.cpp:741` *is* commented out. Reading only that copy suggests the stage is dead. It is not.
 
-Note that a copy of this call at `transcripcion.cpp:741` *is* commented out. Reading only that copy suggests the stage is dead. It is not.
+### What `tra=4` does not do
+
+**Pause and phrase-group markers.** The binary also prints `#%pausa N%#` and `%prop N%` at `-t3`. Those come from the pause and syntagma modules, which pycotovia does not port. Strip them before comparing.
+
+**Verb timbre.** `manexo_do_timbre_verbal()` resolves the timbre of a verb form from the conjugation tables in `verbos.txt`. pycotovia carries no verb lexicon, so verb forms fall through to the noun rules and sometimes come out open where the binary has them closed (`sabemos`, `volveron`, `chova`).
+
+**Morphosyntactic disambiguation.** Cotovia picks a word's category with a Viterbi tagger over its dictionaries. pycotovia takes the first category the word is listed under in `palabrasFuncion.txt`. Words whose tonicity depends on context (`que`, `nin`, `onde`, `me`) can therefore come out wrong.
+
+**Accented-vowel notation.** The binary writes the open stressed vowels as `E^` and `O^`, not `É` and `Ó` — verified at byte level. The accented form in the ProxectoNos gold is a transform their dataset pipeline applied, along with re-inserting punctuation from the source text. Neither is Cotovia output, so neither is done here.
+
+### Measured parity at `-t3`
+
+On the 30-sentence ProxectoNos set, against the binary with markers stripped:
+
+- **96.4%** of words identical (297/308)
+- **20/30** sentences identical end to end
+
+Every remaining difference traces to one of the three unported pieces above.
 
 ## Running the parity test
 
