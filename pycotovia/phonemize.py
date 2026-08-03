@@ -45,6 +45,29 @@ def _split_hyphenated(token: str) -> list[str]:
     return parts
 
 
+#: Marks that end a sentence for the binary, which then transcribes what
+#: follows as a new phrase.  Verified against the binary, which prints one
+#: line per sentence: "veu: voulles" splits, "veu? voulles" and
+#: "veu, voulles" do not.  Getting this wrong leaves the first word of the
+#: next sentence in intervocalic position, so /b/ comes out fricative (B)
+#: where the binary has the phrase-initial occlusive (b).
+SENTENCE_SEPARATORS = ".:;"
+
+
+def _split_sentences(text: str) -> list[str]:
+    """Split input text into the sentences the binary would transcribe."""
+    parts = []
+    current = []
+    for ch in text:
+        if ch in SENTENCE_SEPARATORS:
+            parts.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+    parts.append("".join(current))
+    return [p for p in parts if p.strip()]
+
+
 def _strip_t0(s: str, tra: int = 1) -> str:
     """Strip #...# and %...% blocks, ^ and - (matching binary sacar_transcripcion).
 
@@ -113,25 +136,30 @@ class Phonemizer:
         Returns:
             Phoneme string in the requested alphabet.
         """
-        # Step 1: Collect words
-        words = self._tokenize(text)
+        # Step 1: Split into sentences.  Each one is wrapped in its own pair
+        # of silence markers, which is what puts its first word in
+        # phrase-initial position for the sandhi rules.
+        parts = []
+        for sentence in _split_sentences(text):
+            words = self._tokenize(sentence)
+            if not words:
+                continue
 
-        # Step 2: Process each word through pre-rules pipeline
-        processed_words = []
-        for word in words:
-            processed_words.append(self._preprocess_word(word))
+            # Step 2: Process each word through the pre-rules pipeline
+            processed_words = [self._preprocess_word(w) for w in words]
 
-        # Step 3: Join into phrase with silence wrappers (matching binary)
-        phrase = "## " + " ".join(processed_words) + " ##"
+            # Step 3: Join into a phrase with silence wrappers (matching binary)
+            phrase = "## " + " ".join(processed_words) + " ##"
 
-        # Step 4: Apply G2P rewrite rules to the full phrase
-        phoneme_phrase = apply_rules(phrase, self.rules)
+            # Step 4: Apply the G2P rewrite rules to the whole phrase
+            phoneme_phrase = apply_rules(phrase, self.rules)
 
-        # Step 5: Strip per tra level
-        if tra >= 4:
-            result = phoneme_phrase
-        else:
-            result = _strip_t0(phoneme_phrase, tra=tra)
+            # Step 5: Strip per tra level
+            if tra >= 4:
+                parts.append(phoneme_phrase)
+            else:
+                parts.append(_strip_t0(phoneme_phrase, tra=tra))
+        result = "".join(parts)
 
         # Step 6: Convert to the requested output alphabet, if not native
         if alphabet != NATIVE_ALPHABET:
