@@ -14,7 +14,7 @@ For each word:
     ↓
     Assign stress (acentuar_prosodicamente)
     ↓
-    Timbre (open/closed e/o) — skipped in transcription mode
+    Timbre (open/closed e/o): skipped in transcription mode
     ↓
 Join into phrase: "## word1 word2 ##"
     ↓
@@ -48,7 +48,10 @@ Phoneme string
 
 Two independent rule sets are generated:
 
-- `GALEGO_RULES_SV` — Galician with semivowel rules
-- `CASTELLANO_RULES_SV` — Spanish with semivowel rules
+- `GALEGO_RULES_SV`: Galician with semivowel rules
+- `CASTELLANO_RULES_SV`: Spanish with semivowel rules
 
 Both are selected at runtime by `Phonemizer(lang=...)`. The `exceptions.py` module also branches on `lang` for language-specific exception lists (e.g. Spanish `x` → `ks`, Galician `x` → `S`).
+
+---
+[Home](../README.md) · [Algorithm →](algorithm.md)

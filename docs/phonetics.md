@@ -18,7 +18,7 @@ Both languages have five pure vowels:
 | o | /o/ | boat (or caught) | ola |
 | u | /u/ | boot | uno |
 
-Galician additionally distinguishes **open** vs **closed** e and o in stressed syllables (the binary can mark this, but pycotovia does not apply it in transcription mode — this is intentional).
+Galician additionally distinguishes **open** vs **closed** e and o in stressed syllables (the binary can mark this, but pycotovia does not apply it in transcription mode: this is intentional).
 
 ## Diphthongs
 
@@ -40,7 +40,7 @@ A triphthong is three vowels in one syllable: weak + strong + weak.
 
 - `guia` = `guia` (one syllable: u-i-a)
 - `guion` = `guion` (one syllable: u-i-o)
-- `aéreo` = `a-é-re-o` (NOT a triphthong — the accent breaks it)
+- `aéreo` = `a-é-re-o` (NOT a triphthong: the accent breaks it)
 
 This is why the `es_triptongo()` bug matters: if `uia` is split as `gui-a`, the rules produce `gia` instead of `gja`.
 
@@ -161,7 +161,7 @@ See `docs/phonemes.md` for the full mapping. The most common ones:
 ## Reading the code
 
 When you see `vocal()`, `consonante()`, `vocal_feble()`, `vocal_aberta()` in `charset.py`, they are implementing the concepts above:
-- `vocal_feble` = weak vowels (i, u, ü) — these can form diphthongs
+- `vocal_feble` = weak vowels (i, u, ü): these can form diphthongs
 - `vocal_aberta` = strong vowels (a, e, o, and their accented forms)
 - `es_diptongo()` = checks if two vowels form a diphthong
 - `es_triptongo()` = checks if three vowels form a triphthong
@@ -174,3 +174,6 @@ The `syllabify.py` module is essentially implementing the rules from "Spanish/Ga
 - [Spanish phonology (Wikipedia)](https://en.wikipedia.org/wiki/Spanish_phonology)
 - [RAE stress rules](https://www.rae.es/dpd/acento)
 - [RAG stress rules](https://academia.gal/dicionario)
+
+---
+[← Algorithm](algorithm.md) · [Home](../README.md) · [Phonemes →](phonemes.md)

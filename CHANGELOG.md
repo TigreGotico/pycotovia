@@ -1,12 +1,61 @@
 # Changelog
 
-## [0.1.1a1](https://github.com/TigreGotico/pycotovia/tree/0.1.1a1) (2026-06-09)
+## [0.6.0a1](https://github.com/TigreGotico/pycotovia/tree/0.6.0a1) (2026-08-05)
 
-[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/979edaaf757767fe0f629dcbe8fb673a2fba6057...0.1.1a1)
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.5.0a1...0.6.0a1)
 
 **Merged pull requests:**
 
-- feat: add gh-automations shared workflows and dynamic versioning [\#2](https://github.com/TigreGotico/pycotovia/pull/2) ([JarbasAl](https://github.com/JarbasAl))
+- feat: port the verb analyser \(morfolo/verbos.cpp\) — prerequisite for verb timbre [\#18](https://github.com/TigreGotico/pycotovia/pull/18) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.5.0a1](https://github.com/TigreGotico/pycotovia/tree/0.5.0a1) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.4.0a2...0.5.0a1)
+
+**Merged pull requests:**
+
+- feat: dual oracles + keep\_bugs; port the binary's list lookup and the ao/aos contraction [\#15](https://github.com/TigreGotico/pycotovia/pull/15) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.4.0a2](https://github.com/TigreGotico/pycotovia/tree/0.4.0a2) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.4.0a1...0.4.0a2)
+
+**Merged pull requests:**
+
+- docs: honest, measured parity audit against the Cotovia binary [\#14](https://github.com/TigreGotico/pycotovia/pull/14) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.4.0a1](https://github.com/TigreGotico/pycotovia/tree/0.4.0a1) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.3.1a1...0.4.0a1)
+
+**Merged pull requests:**
+
+- feat: add tra=4, the prosodic mode matching Cotovía's -t3 [\#12](https://github.com/TigreGotico/pycotovia/pull/12) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.3.1a1](https://github.com/TigreGotico/pycotovia/tree/0.3.1a1) (2026-08-03)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.3.0a1...0.3.1a1)
+
+**Merged pull requests:**
+
+- fix: four G2P parity divergences against the Cotovia binary [\#10](https://github.com/TigreGotico/pycotovia/pull/10) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.3.0a1](https://github.com/TigreGotico/pycotovia/tree/0.3.0a1) (2026-08-02)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.1.1a2...0.3.0a1)
+
+**Merged pull requests:**
+
+- feat: multi-alphabet output via scriptconv [\#8](https://github.com/TigreGotico/pycotovia/pull/8) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.1.1a2](https://github.com/TigreGotico/pycotovia/tree/0.1.1a2) (2026-07-30)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.1.0...0.1.1a2)
+
+**Merged pull requests:**
+
+- docs: rewrite README in Simplified Technical English [\#6](https://github.com/TigreGotico/pycotovia/pull/6) ([JarbasAl](https://github.com/JarbasAl))
+- fix: relicense GPL-3.0 \(source-derived port\) [\#4](https://github.com/TigreGotico/pycotovia/pull/4) ([JarbasAl](https://github.com/JarbasAl))
 
 
 

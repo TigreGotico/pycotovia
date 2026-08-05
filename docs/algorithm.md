@@ -6,10 +6,10 @@ This document explains the full G2P (grapheme-to-phoneme) algorithm step-by-step
 
 The pipeline has four stages:
 
-1. **Preprocessing** — lowercase, handle exceptions, prepare the word
-2. **Syllabification** — split the word into syllables
-3. **Stress assignment** — find the stressed vowel and mark it
-4. **Rule engine** — apply ~2,800 rewrite rules to convert letters to phonemes
+1. **Preprocessing**: lowercase, handle exceptions, prepare the word
+2. **Syllabification**: split the word into syllables
+3. **Stress assignment**: find the stressed vowel and mark it
+4. **Rule engine**: apply ~2,800 rewrite rules to convert letters to phonemes
 
 ## Stage 1: Preprocessing
 
@@ -157,10 +157,7 @@ The rule engine (`engine.py`) is a simple longest-match-first rewrite system. It
 
 Input: `## gue^-rra ##`
 
-1. Position 0: `## gue^` → matches `# g^e` → output: `## g^e`
-   Wait, let's trace more carefully:
-
-Actually the rule engine processes the FULL string. The rules are:
+The rule engine processes the full string. The matching rules are:
 
 ```
 "## gue^" → "# g^e"   (consume 7, output 5)
@@ -206,16 +203,19 @@ The rules are sorted by antecedent length (longest first) to ensure the most spe
 
 ## Limitations
 
-1. **No context** — each word is processed independently. "read" (past) and "read" (present) are the same.
-2. **No named entities** — "Houston" is processed as if it were a regular word.
-3. **No dialects** — only standard Galician and Spanish.
-4. **No loanword pronunciation** — "software" is processed as Spanish/Galician rules, not English.
-5. **Numbers** — written as digits ("123") are treated as non-letters and ignored.
+1. **No context**: each word is processed independently. "read" (past) and "read" (present) are the same.
+2. **No named entities**: "Houston" is processed as if it were a regular word.
+3. **No dialects**: only standard Galician and Spanish.
+4. **No loanword pronunciation**: "software" is processed as Spanish/Galician rules, not English.
+5. **Numbers**: written as digits ("123") are treated as non-letters and ignored.
 
 ## Further reading
 
-- `docs/phonetics.md` — phonetics background
-- `docs/architecture.md` — module map
-- `docs/parity.md` — verification results
-- `docs/phonemes.md` — full phoneme inventory
-- `docs/exceptions.md` — exception word lists
+- `docs/phonetics.md`: phonetics background
+- `docs/architecture.md`: module map
+- `docs/parity.md`: verification results
+- `docs/phonemes.md`: full phoneme inventory
+- `docs/exceptions.md`: exception word lists
+
+---
+[← Architecture](architecture.md) · [Home](../README.md) · [Phonetics →](phonetics.md)

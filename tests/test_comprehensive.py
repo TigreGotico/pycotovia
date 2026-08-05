@@ -18,7 +18,12 @@ from pycotovia.charset import (
 )
 from pycotovia.syllabify import syllabify
 from pycotovia.stress import assign_stress, _grave, _aguda
-from pycotovia.timbre import assign_timbre, _grave_is_closed, _esdruxula_is_closed, _aguda_is_open
+from pycotovia.timbre import (
+    asignar_timbre_a_sustantivos, posicion_acento,
+    estan_en_contacto_con_nasal, timbre_en_agudas, timbre_en_graves,
+    timbre_en_esdruxulas, cambiar_por_timbre_aberto,
+    hai_grupo_eu_ou_na_antepenultima_silaba,
+)
 from pycotovia.phonemes import (
     cotovia_to_ipa, is_vowel, is_voiceless, PHONEME_NAMES,
     VOWEL_PHONEMES, VOICELESS, COTOVIA2IPA,
@@ -318,91 +323,7 @@ class TestStressExtended(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestTimbre(unittest.TestCase):
-    def test_no_stress_mark(self):
-        # no ^ → returned unchanged
-        self.assertEqual(assign_timbre("ca-sa"), "ca-sa")
-
-    def test_spanish_passthrough(self):
-        self.assertEqual(assign_timbre("ca^-sa", lang="es"), "ca^-sa")
-
-    def test_non_eo_stressed_vowel(self):
-        # stressed vowel is 'a' → unchanged
-        result = assign_timbre("ca^-sa", lang="gl")
-        self.assertEqual(result, "ca^-sa")
-
-    def test_stress_at_pos0(self):
-        # ^ at position 0 or 1 edge case
-        result = assign_timbre("^e", lang="gl")
-        self.assertIsInstance(result, str)
-
-    def test_esdruxula_closed_word(self):
-        # alvéolo is in ESDR_PALABRAS_PECHADAS → closed
-        self.assertTrue(_esdruxula_is_closed("alvéolo"))
-
-    def test_esdruxula_closed_suffix(self):
-        # ends in 'úa' reversed is 'aú' → check suffix list has "úa"
-        # use a word ending in -úa
-        self.assertTrue(_esdruxula_is_closed("contínúa"))
-
-    def test_grave_open_word(self):
-        # "ceo" is in GRAVES_PALABRAS_ABERTAS
-        self.assertFalse(_grave_is_closed("ceo"))
-
-    def test_grave_closed_word(self):
-        # "rede" is in GRAVES_PALABRAS_PECHADAS (no hyphens/stress for lookup)
-        self.assertTrue(_grave_is_closed("rede"))
-
-    def test_grave_open_suffix(self):
-        # "ciencia" ends with "ia" which maps to GRAVES_TERMINACIONS_ABERTAS entry "aine"
-        self.assertFalse(_grave_is_closed("ciencia"))
-
-    def test_grave_closed_suffix(self):
-        # "syllabe" ends with "abe" which is in GRAVES_TERMINACIONS_PECHADAS
-        self.assertTrue(_grave_is_closed("syllabe"))
-
-    def test_grave_default_open(self):
-        # a word not in any list → default open (False closed)
-        self.assertFalse(_grave_is_closed("xyzabc"))
-
-    def test_aguda_open_suffix(self):
-        # ends in "el" → open
-        self.assertTrue(_aguda_is_open("pa^-pel"))
-
-    def test_aguda_open_word(self):
-        # "fe" is in AGUDAS_PALABRAS_ABERTAS
-        self.assertTrue(_aguda_is_open("fe^"))
-
-    def test_aguda_default_closed(self):
-        self.assertFalse(_aguda_is_open("pa^-so"))
-
-    def test_assign_timbre_grave_non_eo_vowel(self):
-        # stressed vowel is 'a' → assign_timbre returns unchanged (only marks e/o)
-        result = assign_timbre("ca^-sa", lang="gl")
-        self.assertEqual(result, "ca^-sa")
-
-    def test_assign_timbre_aguda_open_e(self):
-        # "fe" → aguda, open, e → é
-        result = assign_timbre("fe^", lang="gl")
-        self.assertIn("é", result)
-
-    def test_assign_timbre_aguda_open_o(self):
-        # "bol": stressed 'o', aguda, ends in 'ol' → open → ó
-        result = assign_timbre("bo^l", lang="gl")
-        self.assertIn("ó", result)
-
-    def test_assign_timbre_diacritico(self):
-        # a diacritic word preserved as-is
-        result = assign_timbre("é^", lang="gl")
-        self.assertIsInstance(result, str)
-
-    def test_esdruxula_default_open(self):
-        # unknown esdrúxula word → open → False closed
-        self.assertFalse(_esdruxula_is_closed("xyz-abc-def"))
-
-
-# ---------------------------------------------------------------------------
-# exceptions
-# ---------------------------------------------------------------------------
+    pass
 
 class TestExceptionsExtended(unittest.TestCase):
     def test_prefix_match(self):
@@ -410,61 +331,62 @@ class TestExceptionsExtended(unittest.TestCase):
         self.assertFalse(_prefix_match("casa", X_PASA_A_KS))
 
     def test_xe_galician_x_pasa_a_ks(self):
-        result = trata_excepcions_xe("anexo", lang="gl")
+        result = trata_excepcions_xe("anexo", "a-ne^-xo", lang="gl")
         self.assertIsNotNone(result)
-        self.assertIn("ks", result)
+        # The x sits after a syllable boundary, so the cluster splits: k-s
+        self.assertEqual("a-ne^k-so", result)
 
     def test_xe_galician_pronuncianse(self):
         # complexo is in PRONUNCIANSE_CON_XE → return None
-        result = trata_excepcions_xe("complexo", lang="gl")
+        result = trata_excepcions_xe("complexo", "com-ple^-xo", lang="gl")
         self.assertIsNone(result)
 
     def test_xe_galician_no_match(self):
-        result = trata_excepcions_xe("gato", lang="gl")
+        result = trata_excepcions_xe("gato", "ga^-to", lang="gl")
         self.assertIsNone(result)
 
     def test_xe_spanish_any_x(self):
-        result = trata_excepcions_xe("taxi", lang="es")
+        result = trata_excepcions_xe("taxi", "ta^-xi", lang="es")
         self.assertIsNotNone(result)
-        self.assertIn("ks", result)
+        self.assertEqual("ta^k-si", result)
 
     def test_xe_spanish_pronuncianse_overrides(self):
         # complexo is still in PRONUNCIANSE_CON_XE
-        result = trata_excepcions_xe("complexo", lang="es")
+        result = trata_excepcions_xe("complexo", "com-ple^-xo", lang="es")
         self.assertIsNone(result)
 
     def test_xe_spanish_no_x(self):
-        result = trata_excepcions_xe("gato", lang="es")
+        result = trata_excepcions_xe("gato", "ga^-to", lang="es")
         self.assertIsNone(result)
 
     def test_w_u(self):
-        result = trata_excepcions_w("twist")
+        result = trata_excepcions_w("twist", "twi^st")
         self.assertIsNotNone(result)
         self.assertIn("u", result)
         self.assertNotIn("w", result)
 
     def test_w_gu(self):
-        result = trata_excepcions_w("sandwich")
+        result = trata_excepcions_w("sandwich", "sand-wi^ch")
         self.assertIsNotNone(result)
         self.assertIn("gu", result)
 
     def test_w_no_match(self):
-        result = trata_excepcions_w("gato")
+        result = trata_excepcions_w("gato", "ga^-to")
         self.assertIsNone(result)
 
     def test_w_u_all_words(self):
         for word in W_PRONUNCIASE_U:
-            result = trata_excepcions_w(word)
+            result = trata_excepcions_w(word, word)
             self.assertIsNotNone(result, word)
 
     def test_w_gu_all_words(self):
         for word in W_PRONUNCIASE_GU:
-            result = trata_excepcions_w(word)
+            result = trata_excepcions_w(word, word)
             self.assertIsNotNone(result, word)
 
     def test_xe_x_pasa_a_ks_all(self):
         for entry in X_PASA_A_KS[:10]:
-            result = trata_excepcions_xe(entry, lang="gl")
+            result = trata_excepcions_xe(entry, entry, lang="gl")
             self.assertIsNotNone(result, entry)
             self.assertIn("ks", result, entry)
 
@@ -566,14 +488,15 @@ class TestPhoneizeDeeper(unittest.TestCase):
             Phonemizer(lang="fr")
 
     def test_empty_string(self):
-        self.assertEqual(phonemize("", lang="gl"), " ")
+        # The binary prints nothing at all for empty input.
+        self.assertEqual(phonemize("", lang="gl"), "")
 
     def test_only_punctuation(self):
         result = phonemize("!!! ???", lang="gl")
         self.assertIsInstance(result, str)
 
-    def test_tra_4_raw(self):
-        result = phonemize("casa", lang="gl", tra=4)
+    def test_tra_5_raw(self):
+        result = phonemize("casa", lang="gl", tra=5)
         self.assertIn("#", result)
 
     def test_strip_t0_stress_mark(self):
@@ -694,9 +617,9 @@ class TestVersion(unittest.TestCase):
 class TestStripT0Extended(unittest.TestCase):
     """Tests for the %...% pause block stripping in _strip_t0."""
 
-    def test_tra4_preserves_hashes(self):
-        # tra=4 returns raw, including ## markers
-        result = phonemize("casa", lang="gl", tra=4)
+    def test_tra5_preserves_hashes(self):
+        # tra=5 returns raw, including ## markers
+        result = phonemize("casa", lang="gl", tra=5)
         self.assertIn("##", result)
 
     def test_percent_blocks_stripped(self):
@@ -768,31 +691,7 @@ class TestStressMoreCoverage(unittest.TestCase):
 
 
 class TestTimbreMoreCoverage(unittest.TestCase):
-    def test_esdruxula_stressed_e(self):
-        # An esdrúxula (3-syllable, stress on first) with stressed 'e'
-        # Default: open (not closed) → e→é
-        result = assign_timbre("e^-co-lo", lang="gl")
-        self.assertIsInstance(result, str)
-
-    def test_grave_stressed_e_open_suffix(self):
-        # grave, stressed 'e', open suffix → e→é
-        # "cue-nta" → "cue^-nta" - atnec reversed = "centa" matches GRAVES_TERMINACIONS_ABERTAS
-        result = assign_timbre("cue^-nta", lang="gl")
-        self.assertIsInstance(result, str)
-
-    def test_timbre_graves_palabras_pechadas_list_has_rede(self):
-        # Verify our understanding: "rede" (no hyphens) is closed
-        from pycotovia.timbre import GRAVES_PALABRAS_PECHADAS
-        self.assertIn("rede", GRAVES_PALABRAS_PECHADAS)
-
-    def test_timbre_agudas_open_suffix_el(self):
-        # ends in 'el' → open
-        self.assertTrue(_aguda_is_open("pa-nel"))
-
-    def test_aguda_open_oz(self):
-        # ends in 'oz' → open
-        self.assertTrue(_aguda_is_open("a-roz"))
-
+    pass
 
 class TestMainModule(unittest.TestCase):
     def test_main_runs(self):
@@ -804,6 +703,53 @@ class TestMainModule(unittest.TestCase):
             text=True,
         )
         self.assertIn("kasa", result.stdout)
+
+
+class TestTimbreUnits(unittest.TestCase):
+    """Unit level checks on the ported timbre helpers."""
+
+    def test_posicion_acento(self):
+        self.assertEqual(1, posicion_acento("ca-fe^"))
+        self.assertEqual(2, posicion_acento("ca^-sa"))
+        self.assertEqual(3, posicion_acento("pu^-bli-co"))
+        self.assertEqual(0, posicion_acento("casa"))
+
+    def test_cambiar_por_timbre_aberto(self):
+        self.assertEqual("có^-sa", cambiar_por_timbre_aberto("co^-sa"))
+        self.assertEqual("cé^-sa", cambiar_por_timbre_aberto("ce^-sa"))
+        # only e and o have an open counterpart
+        self.assertEqual("ca^-sa", cambiar_por_timbre_aberto("ca^-sa"))
+
+    def test_estan_en_contacto_con_nasal(self):
+        self.assertTrue(estan_en_contacto_con_nasal("es-ta-dou-ni-de^n-ses"))
+        self.assertFalse(estan_en_contacto_con_nasal("com-ple^-ta"))
+
+    def test_eu_ou_guard_is_dead_in_the_c(self):
+        # Replicated precedence bug: the guard can never fire.
+        self.assertFalse(hai_grupo_eu_ou_na_antepenultima_silaba("de^u-si-co"))
+
+    def test_no_stressed_e_or_o_is_left_alone(self):
+        self.assertEqual("ca^-sa", asignar_timbre_a_sustantivos("casa", "ca^-sa"))
+
+    def test_existing_open_diacritic_is_left_alone(self):
+        self.assertEqual("nó^s", asignar_timbre_a_sustantivos("nós", "nó^s"))
+
+    def test_falling_diphthong_stays_closed(self):
+        self.assertEqual("pe^i-ne", asignar_timbre_a_sustantivos("peine", "pe^i-ne"))
+
+    def test_reversed_termination_lists_are_matched_backwards(self):
+        # "cento" is reachable through the reversed entry "otnec"
+        self.assertTrue(timbre_en_graves("cento", "ce^n-to"))
+        # "estadounidense" is not: the binary's binary search cannot reach it
+        self.assertFalse(
+            timbre_en_graves("estadounidenses", "es-ta-dou-ni-de^n-ses"))
+
+    def test_agudas(self):
+        self.assertTrue(timbre_en_agudas("papel"))
+        self.assertFalse(timbre_en_agudas("paso"))
+
+    def test_esdruxulas(self):
+        self.assertFalse(timbre_en_esdruxulas("alvéolo", "al-vé^-o-lo"))
 
 
 if __name__ == "__main__":

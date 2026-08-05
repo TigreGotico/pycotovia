@@ -8,7 +8,8 @@ dynamic = ["version"]
 description = "Pure-Python Cotovia G2P phonemizer for Galician and Spanish"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Apache-2.0" }
+dependencies = ["scriptconv>=0.0.4a13"]
+license = { text = "GPL-3.0-or-later" }
 authors = [
     { name = "TigreGotico", email = "contact@tigregotico.com" }
 ]

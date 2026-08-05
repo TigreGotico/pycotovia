@@ -157,8 +157,13 @@ ACENTO_A_BASE = {
     0xFC: 'u', 0xDC: 'U',
     0xFD: 'y', 0xDD: 'Y',
     0xFF: 'y',
-    0xF1: 'n', 0xD1: 'N',
-    0xE7: 'c', 0xC7: 'C',
+    # ñ (0xF1/0xD1) and ç (0xE7/0xC7) do NOT belong here.  This map strips
+    # the graphic accent off a vowel; the C only ever does that for the five
+    # accented vowels (`strpbrk(pal_entrada, "áéíóú")` in
+    # acentuar_prosodicamente).  ñ and ç are letters in their own right, not
+    # accented forms of n and c.  Listing them here flattened the letter
+    # whenever the word also carried an accent, so "mañá" transcribed as
+    # `mana^` instead of `maJa^` and "caçá" as `kaka^` instead of `kasa^`.
 }
 
 

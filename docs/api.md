@@ -1,19 +1,33 @@
 # API reference
 
-## `pycotovia.phonemize(text, lang="gl", tra=1)`
+## `pycotovia.phonemize(text, lang="gl", tra=1, alphabet="cotovia")`
 
 Convert plain text to a phoneme string.
 
 **Parameters:**
-- `text` (str) — input text (Latin-1 or Unicode)
-- `lang` (str) — `"gl"` for Galician, `"es"` for Spanish
-- `tra` (int) — output level:
+- `text` (str): input text (Latin-1 or Unicode)
+- `lang` (str): `"gl"` for Galician, `"es"` for Spanish
+- `tra` (int): output level:
   - `1` = phonemes only (default)
   - `2` = phonemes + stress markers (`^`)
   - `3` = phonemes + stress + syllable separators (`-`)
-  - `4` = raw rule-engine output (with `#` / `%` blocks)
+  - `4` = prosodic mode: function words lose their stress mark and nouns get
+    their open vowels (`E`/`O`). Matches the binary's `-t3`.
+  - `5` = raw rule-engine output (with `#` / `%` blocks)
 
-**Returns:** `str` — phoneme string in Cotovia notation
+  These line up with Cotovía's `-t0`..`-t3` flags, offset by one:
+  `tra=N` corresponds to `-t(N-1)`.
+- `alphabet` (str): output phonetic alphabet, one of `pycotovia.ALPHABETS`.
+  Defaults to `"cotovia"` (native notation, no behavior change from prior
+  releases). Any other value converts the native output through
+  [scriptconv](https://github.com/TigreGotico/scriptconv). Only valid with
+  `tra=1` — raises `AlphabetError` otherwise.
+
+**Returns:** `str`: phoneme string in Cotovia notation, or the requested `alphabet`.
+
+**Raises:**
+- `AlphabetError`: unknown `alphabet` value, or `alphabet` requested with `tra != 1`
+- `UnmappedSymbolError`: a phoneme has no mapping to the requested `alphabet`
 
 **Examples:**
 ```python
@@ -22,6 +36,9 @@ import pycotovia
 pycotovia.phonemize("guerra", lang="gl")        # "gerra"
 pycotovia.phonemize("guerra", lang="gl", tra=2)   # "g^erra"
 pycotovia.phonemize("guerra", lang="gl", tra=3)   # "g^e-rra"
+pycotovia.phonemize("a defensa", lang="gl", tra=4)  # "a De-fE^N-sa" (a is atonic)
+pycotovia.phonemize("guerra", lang="gl", alphabet="ipa")       # "ɡera "
+pycotovia.phonemize("cantar", lang="gl", alphabet="x-sampa")   # "kanta4 "
 ```
 
 ## `pycotovia.Phonemizer`
@@ -51,21 +68,27 @@ cotovia_to_ipa("kasa")    # "kasa"
 
 The raw mapping dict from Cotovia phoneme symbols to IPA strings.
 
+## `pycotovia.ALPHABETS`
+
+Tuple of alphabet identifiers accepted by the `alphabet` argument, enumerated
+from scriptconv's convention registry (`"cotovia"`, `"ipa"`, `"x-sampa"`,
+`"arpa"`, `"lexique"`, `"kirshenbaum"`, `"rfe"`).
+
 ## CLI
 
 ```bash
-pycotovia [-l gl|es] < input.txt > output.txt
+pycotovia [-l gl|es] [-a alphabet] < input.txt > output.txt
 ```
 
 ## Internal modules
 
 These are not part of the public API but are documented for contributors:
 
-- `pycotovia.syllabify.syllabify(word)` — syllabify a single word
-- `pycotovia.stress.assign_stress(syllabified, lang)` — place stress marker
-- `pycotovia.engine.apply_rules(text, rules)` — run the rule engine
-- `pycotovia.charset.vocal(c)`, `consonante(c)` — Latin-1 char classification
-- `pycotovia.exceptions.trata_excepcions_xe(word, lang)`, `trata_excepcions_w(word)` — exception preprocessing
+- `pycotovia.syllabify.syllabify(word)`: syllabify a single word
+- `pycotovia.stress.assign_stress(syllabified, lang)`: place stress marker
+- `pycotovia.engine.apply_rules(text, rules)`: run the rule engine
+- `pycotovia.charset.vocal(c)`, `consonante(c)`: Latin-1 char classification
+- `pycotovia.exceptions.trata_excepcions_xe(word, lang)`, `trata_excepcions_w(word)`: exception preprocessing
 
 ## `extract_rules.py`
 
@@ -74,3 +97,6 @@ Build script that regenerates `rules_data.py` from the Cotovia C++ headers. Not 
 ```bash
 python extract_rules.py /path/to/cotovia/src/cotovia/include/alof_gal.hpp gl > pycotovia/rules_data.py
 ```
+
+---
+[← Parity](parity.md) · [Home](../README.md)
