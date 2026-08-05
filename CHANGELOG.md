@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0a1](https://github.com/TigreGotico/pycotovia/tree/0.6.0a1) (2026-08-05)
+
+[Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.5.0a1...0.6.0a1)
+
+**Merged pull requests:**
+
+- feat: port the verb analyser \(morfolo/verbos.cpp\) — prerequisite for verb timbre [\#18](https://github.com/TigreGotico/pycotovia/pull/18) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.5.0a1](https://github.com/TigreGotico/pycotovia/tree/0.5.0a1) (2026-08-03)
 
 [Full Changelog](https://github.com/TigreGotico/pycotovia/compare/0.4.0a2...0.5.0a1)
