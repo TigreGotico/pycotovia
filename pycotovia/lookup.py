@@ -48,7 +48,7 @@ def buscar_palabra(lista: tuple[str, ...], pal: str) -> int:
 
 
 def buscar_inicio(lista: tuple[str, ...], pal: str,
-                  inverso: bool = False) -> int:
+                  inverso: bool = False, limite: int | None = None) -> int:
     """Prefix match — port of ``comprobar_en_lista_de_inicio_de_palabras()``.
 
     Binary search first, then a truncated comparison at the landing point and
@@ -58,10 +58,18 @@ def buscar_inicio(lista: tuple[str, ...], pal: str,
     prefix match into a suffix match. The list entries are already stored
     reversed in that case (``EN_DICCIONARIO_INVERSO``).
 
+    ``limite`` restricts the search to the first N entries. The verb analyser
+    uses it to look for shorter endings after it has found a longer one:
+    ``gbm::busca()`` clamps the list to ``tamanio`` the same way.
+
     Returns the index, or -1.
     """
     if not lista:
         return -1
+    if limite is not None:
+        lista = lista[:max(limite, 0)]
+        if not lista:
+            return -1
     word = _encode(pal[::-1] if inverso else pal)
 
     lim_inferior, lim_superior = 0, len(lista) - 1
